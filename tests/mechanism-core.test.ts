@@ -76,6 +76,25 @@ describe('deterministic transition contract', () => {
     expect(trace.events.at(-2)?.type).toBe('CARRY_OUT');
     expect(trace.warnings).toMatchObject([{ code: 'OVERFLOW', wheel: { index: 3 } }]);
   });
+
+  it('rejects malformed action and digit-array shapes before transitioning', () => {
+    const state = createDecimalRegister([1, 0, 0, 0]);
+    expect(() => transitionDecimalRegister(state, { type: 'CRANK_PLUS_ONE', cycleId: '' })).toThrow(
+      InvalidWheelStateError,
+    );
+
+    const sparse = createDecimalRegister([1, 0, 0, 0]);
+    delete sparse.digits[0];
+    expect(() => transitionDecimalRegister(sparse, { type: 'CRANK_PLUS_ONE', cycleId: 'sparse' })).toThrow(
+      InvalidWheelStateError,
+    );
+
+    const extended = createDecimalRegister([1, 0, 0, 0]);
+    Object.assign(extended.digits, { [Symbol('forged')]: true });
+    expect(() => transitionDecimalRegister(extended, { type: 'CRANK_PLUS_ONE', cycleId: 'extended' })).toThrow(
+      InvalidWheelStateError,
+    );
+  });
 });
 
 describe('canonical JSON trace and UI-independent replay', () => {
@@ -113,7 +132,7 @@ describe('canonical JSON trace and UI-independent replay', () => {
     const parsed = parseTrace<DecimalRegisterState, CrankAction, MechanismEvent>(
       serializeTrace(createCrankTrace([9, 9, 0, 0], 7)),
     );
-    expect(replayTrace(parsed, reduceDecimalRegisterEvent)).toEqual(parsed.finalState);
+    expect(replayTrace(parsed, reduceDecimalRegisterEvent, transitionDecimalRegister)).toEqual(parsed.finalState);
     expect(digitsToString(parsed.finalState.digits)).toBe('0100');
   });
 
@@ -130,8 +149,78 @@ describe('canonical JSON trace and UI-independent replay', () => {
         type: 'UNKNOWN_DECIMAL_EVENT',
       } as unknown as MechanismEvent);
 
-    expect(() => replayTrace({ ...trace, events }, reduceDecimalRegisterEvent)).toThrow(
+    expect(() => replayTrace({ ...trace, events }, reduceDecimalRegisterEvent, transitionDecimalRegister)).toThrow(
       'unsupported decimal register event type: UNKNOWN_DECIMAL_EVENT',
     );
+  });
+
+  it.each([
+    'action-cycle',
+    'envelope-cycle',
+    'omitted-control-events',
+    'event-order',
+    'event-sequence',
+    'warning',
+  ] as const)('binds replay to the recorded action for %s tampering', (kind) => {
+    const trace = structuredClone(createCrankTrace([9, 9, 0, 0], 7));
+    if (kind === 'action-cycle') trace.action.cycleId = 'forged-action-cycle';
+    if (kind === 'envelope-cycle') trace.cycleId = 'forged-envelope-cycle';
+    if (kind === 'omitted-control-events') {
+      trace.events = trace.events.filter((event) => event.type === 'WHEEL_STEP');
+    }
+    if (kind === 'event-order') {
+      const firstStep = trace.events.findIndex((event) => event.type === 'WHEEL_STEP');
+      const secondStep = trace.events.findIndex((event, index) => index > firstStep && event.type === 'WHEEL_STEP');
+      [trace.events[firstStep], trace.events[secondStep]] = [trace.events[secondStep], trace.events[firstStep]];
+    }
+    if (kind === 'event-sequence') trace.events[0].sequence = 99;
+    if (kind === 'warning') trace.warnings.push({ severity: 'warning', code: 'FORGED', message: 'not action-derived' });
+
+    expect(() => replayTrace(trace, reduceDecimalRegisterEvent, transitionDecimalRegister)).toThrow();
+  });
+
+  it('rejects enumerable event fields that canonical JSON would discard', () => {
+    const undefinedField = createCrankTrace([1, 0, 0, 0], 7);
+    Object.assign(undefinedField.events[0], { forged: undefined });
+    expect(() => replayTrace(
+      undefinedField,
+      reduceDecimalRegisterEvent,
+      transitionDecimalRegister,
+    )).toThrow('trace action did not produce the recorded events');
+
+    const symbolField = createCrankTrace([1, 0, 0, 0], 7);
+    Object.assign(symbolField.events[0], { [Symbol('forged')]: true });
+    expect(() => replayTrace(
+      symbolField,
+      reduceDecimalRegisterEvent,
+      transitionDecimalRegister,
+    )).toThrow('trace action did not produce the recorded events');
+  });
+
+  it.each(['trace', 'initial-state', 'action', 'final-state'] as const)(
+    'rejects unsupported enumerable %s fields',
+    (target) => {
+      const trace = createCrankTrace([1, 0, 0, 0], 7);
+      if (target === 'trace') Object.assign(trace, { forged: undefined });
+      if (target === 'initial-state') Object.assign(trace.initialState, { forged: undefined });
+      if (target === 'action') Object.assign(trace.action, { [Symbol('forged')]: true });
+      if (target === 'final-state') Object.assign(trace.finalState, { forged: undefined });
+
+      expect(() => replayTrace(
+        trace,
+        reduceDecimalRegisterEvent,
+        transitionDecimalRegister,
+      )).toThrow();
+    },
+  );
+
+  it('distinguishes sparse event arrays from explicit entries', () => {
+    const trace = createCrankTrace([1, 0, 0, 0], 7);
+    delete trace.events[0];
+    expect(() => replayTrace(
+      trace,
+      reduceDecimalRegisterEvent,
+      transitionDecimalRegister,
+    )).toThrow('trace action did not produce the recorded events');
   });
 });

@@ -1,6 +1,6 @@
 # Current Status
 
-Last reconciled on 2026-09-02 after integrating Analytical Engine fixture-derived replay provenance and inspecting Type II Curta manufacturer sheets.
+Last reconciled on 2026-09-02 after binding decimal-register replay to its recorded action and complete trace, following the Analytical Engine fixture-provenance and Type II Curta sheet pass.
 
 This file is the **current-state authority** for the repository. `ROADMAP.md` describes where the project should go; `IMPLEMENTATION_PLAN.md` is still useful as a dependency/design specification, but many of its checkboxes predate later implementation and must not be treated as the live task ledger.
 
@@ -13,13 +13,13 @@ This file is the **current-state authority** for the repository. `ROADMAP.md` de
 - GitHub Actions CI and a Pages deployment workflow.
 - Deterministic state/event/replay primitives under `src/core/`.
 - Golden carry fixtures under `fixtures/carry/`.
-- The latest local code verification (`docs/VERIFICATION.md`, 2026-09-02 UTC+8) reports typecheck, 302 tests across 21 files, production build, and diff check passing. The most recent bilingual browser smoke was the preceding Bush/Shannon evidence pass; this trace-only slice does not change UI output.
+- The latest local code verification (`docs/VERIFICATION.md`, 2026-09-02 UTC+8) reports typecheck, 333 tests across 21 files, production build, and diff check passing. The most recent bilingual browser smoke was the preceding source-atlas pass; this trace-only slice does not change UI output.
 
 Remote CI run `33437862103` passed for the previous operator-division checkpoint `7bebcea2d187f0ed2411de4098c846963df8b32a`. This status still does **not** substitute for CI on later commits.
 
 ### Mechanism models already present
 
-- decimal wheel/register replay with runtime fail-closed rejection of unknown serialized event discriminators while retaining declared crank/carry markers as reducer-level no-ops;
+- decimal wheel/register replay with runtime fail-closed rejection of unknown serialized event discriminators plus action-derived validation of the envelope, complete ordered crank/carry event sequence, warnings/errors, endpoints, and exact enumerable trace/state/action shape;
 - carry chain;
 - carriage shift;
 - hardened difference-column / finite-difference stepping with state validation, derived arithmetic checks, fail-closed event replay, and row/output consistency;

@@ -1,5 +1,19 @@
 # Verification record
 
+## 2026-09-02 — decimal-register action-derived replay provenance
+
+The exact current-main baseline `4ac9dd8c480227e6b4ade51ce5eea24dc51f3935` passed typecheck, 320 tests across 21 files, and a production build before editing. The shared replay helper previously reconstructed only the recorded final state: a decimal trace could omit every reducer-level no-op `CRANK_BEGIN`, `CARRY_*`, and `CRANK_END` marker, reorder independent wheel steps, or detach action/cycle metadata while still being accepted whenever the retained wheel updates reached the recorded digits.
+
+Replay now requires the deterministic transition alongside the event reducer. The reducer remains the source of the returned replayed state, while the transition independently re-derives the action-authorized envelope, complete ordered events, warnings, errors, and final state. Decimal state/action and the trace envelope reject unsupported enumerable string/Symbol fields. Comparison preserves object-member insertion-order tolerance without JSON's lossy treatment of enumerable `undefined`, Symbol keys, sparse arrays, or non-finite values. Focused regressions cover omitted control markers, commutative wheel-step reordering, sequence/action/envelope-cycle changes, warning tampering, unknown event types, sparse arrays, and unsupported fields on the trace, state, action, event, and final state.
+
+- `npm run typecheck` — pass
+- `npm test -- --run` — pass, 333 tests across 21 files
+- `npm run build` — pass
+- `git diff --check` — pass
+- focused mechanism-core and canonical-fixture tests — 32 tests passed
+
+No browser or deployment check was performed because this slice changes trace provenance, replay validation, tests, and project records only; UI output is unchanged.
+
 ## 2026-09-02 — Analytical replay integration and Curta Type II sheet precision
 
 The current-main pre-edit baseline at `d076a061445b6dce498cc92c5a5e890e6b6693ad` passed typecheck and 302 tests across 21 files. The reviewed behavioral content of conflict-blocked PR #11 exact head `4a98fb186978356af5e860b76d0c15d811a28586` was applied only to the Analytical Engine flow and its tests, preserving current-main PR #10 direct-multiplication action-authority changes. Analytical replay and stepping now derive the canonical initial state/events/final state from an exact safe-integer `{a,b,c,d}` fixture and fail closed on fixture-only or alternate-fixture substitution, unknown enumerable string/Symbol fields, non-finite/undefined extensions, sparse or extended/reordered arrays and final-state tampering. Object member insertion order remains non-semantic.

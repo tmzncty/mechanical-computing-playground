@@ -5,6 +5,7 @@ import { parseTrace, replayTrace, serializeTrace } from '../src/core/trace';
 import {
   createCrankTrace,
   reduceDecimalRegisterEvent,
+  transitionDecimalRegister,
   type CrankAction,
   type DecimalRegisterState,
 } from '../src/mechanism-core';
@@ -17,10 +18,10 @@ describe('0099 canonical carry fixture', () => {
     expect(serializeTrace(createCrankTrace([9, 9, 0, 0]))).toBe(fixture);
   });
 
-  it('replays without running the transition or using a UI', () => {
+  it('returns reducer-replayed state after action validation without using a UI', () => {
     const fixture = readFileSync(fixtureUrl, 'utf8');
     const trace = parseTrace<DecimalRegisterState, CrankAction, MechanismEvent>(fixture);
-    expect(replayTrace(trace, reduceDecimalRegisterEvent)).toEqual({
+    expect(replayTrace(trace, reduceDecimalRegisterEvent, transitionDecimalRegister)).toEqual({
       mechanismId: 'decimal-register',
       digits: [0, 0, 1, 0],
     });

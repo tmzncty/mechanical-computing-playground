@@ -155,7 +155,7 @@ trace API 位于 `src/core/trace.ts`：
 ```ts
 serializeTrace(trace): string
 parseTrace(json): OperationTrace
-replayTrace(trace, reducer): State
+replayTrace(trace, reducer, transition): State
 ```
 
 格式标识：
@@ -167,9 +167,9 @@ replayTrace(trace, reducer): State
 }
 ```
 
-`serializeTrace()` 递归排序 object keys、保留 array/event 顺序并省略 `undefined`，因此同一状态和动作在当前 format version 下产生 byte-for-byte 相同 JSON。`parseTrace()` 检查格式与版本；`replayTrace()` 只从 `initialState + events + reducer` 重建 final state，并核对记录的 `finalState`。
+`serializeTrace()` 递归排序 object keys、保留 array/event 顺序并省略 `undefined`，因此同一状态和动作在当前 format version 下产生 byte-for-byte 相同 JSON。`parseTrace()` 检查格式与版本；`replayTrace()` 从 `initialState + events + reducer` 重建 final state，同时用传入的 deterministic transition 从记录的 `initialState + action` 重新导出权威 events、warnings、errors 和 final state。外层 mechanism/cycle 标识也必须与动作导出的事件一致。
 
-replay 不调用 transition，不需要 UI，也不依赖动画计时。篡改 wheel 的 `from` 前置条件会使 decimal event reducer 拒绝 trace。
+transition 只承担动作来源校验；replay 返回的状态仍由 reducer 消费记录事件得到，不需要 UI，也不依赖动画计时。对象成员插入顺序不影响比较，但 event/array 顺序、稀疏槽位和全部 enumerable string/Symbol 字段都保持权威；不会再用有损的 JSON 比较吞掉 `undefined` 扩展。篡改 wheel 的 `from` 前置条件会使 decimal event reducer 拒绝 trace；删掉 crank/carry 控制事件、交换可交换的 wheel steps、伪造 sequence/cycle/action 或 warnings/errors，即使最后数字仍相同，也会被 action-derived 校验拒绝。
 
 ## 8. 历史与证据边界
 
@@ -198,4 +198,6 @@ replay 不调用 transition，不需要 UI，也不依赖动画计时。篡改 w
 - 相同 state/action 的 canonical JSON 完全一致；
 - trace JSON round trip；
 - canonical fixture 字节匹配；
-- 完整 crank cycle 的 UI-independent replay。
+- 完整 crank cycle 的 UI-independent replay；
+- action/envelope 与完整 crank/carry 事件、warnings/errors、final state 的一致性；
+- 省略/调序/改 sequence、cycle、action 和有损 JSON 会忽略的 enumerable 扩展均 fail closed。
