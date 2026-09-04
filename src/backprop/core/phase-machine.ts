@@ -10,4 +10,4 @@ export function stepPhase(machine: Readonly<PhaseMachineState>): PhaseMachineSta
   if (phase === 'WEIGHT_UPDATE') return { state: cycle(machine.state).state, phaseIndex: 0, events };
   return { state: machine.state, phaseIndex: machine.phaseIndex + 1, events };
 }
-export function runPhaseCycle(machine: Readonly<PhaseMachineState>): PhaseMachineState { let next = machine as PhaseMachineState; for (let i=0;i<STAGE_A_PHASES.length;i+=1) next=stepPhase(next); return next; }
+export function runPhaseCycle(machine: Readonly<PhaseMachineState>): PhaseMachineState { let next = machine as PhaseMachineState; for (let i=machine.phaseIndex;i<STAGE_A_PHASES.length;i+=1) next=stepPhase(next); return next; }

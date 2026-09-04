@@ -742,6 +742,21 @@ CI for commit `30b3f16` completed successfully. Pages build jobs completed far e
 
 This was an external repository setting/API boundary, not a source build failure. The workflow remains explicit and should be re-tested once Pages is enabled/configured.
 
+## 2026-09-05 — complete the current hand-crank backprop cycle
+
+The exact remote-main baseline `c9e2ea0efd9a1563d38fa854f0e2d09e9bcf0102` reproduced a phase-boundary bug in the hand-crank backpropagation state machine. After three explicit single-step advances, “complete one learning cycle” always advanced ten more phases: it crossed the current `WEIGHT_UPDATE` boundary, entered the next cycle, left `phaseIndex` at 3, and accumulated 13 phase events. The first-red regression expected the current cycle to finish at `phaseIndex` 0 with exactly the ten ordered `STAGE_A_PHASES`, but received 3.
+
+`runPhaseCycle` now advances only from the current phase index through the remaining phases of that cycle. The same partial-step scenario stops at the current cycle boundary, retains exactly the ten ordered phase events, and applies one weight update. A browser smoke on `#/hand-crank-backprop` confirmed three manual steps followed by cycle completion returned the display to `装入样本`, changed loss from `50.000` to `37.845`, and showed 10 phase log lines rather than 13.
+
+- Node.js `22.23.2`
+- `npm run typecheck` — pass
+- `npm test` — pass, 421 tests across 22 files
+- `npm run build` — pass
+- `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/ci.yml .github/workflows/pages.yml` — pass
+- `git diff --check` — pass
+
+No backpropagation formula, phase/event vocabulary, historical claim, evidence boundary, or deployment configuration changed.
+
 ## Current limitations
 
 - The site uses hash routes so static Project Pages hosting does not require server-side rewrites.

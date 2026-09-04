@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRevolutionCounter, crankRevolution, InvalidRevolutionCounterError, reduceRevolution } from '../src/mechanisms/revolution-counter';
 import { createIntegrator, integrate } from '../src/mechanisms/continuous-integrator';
-import { createPhaseMachine, runPhaseCycle, STAGE_A_PHASES } from '../src/backprop/core/phase-machine';
+import { createPhaseMachine, runPhaseCycle, stepPhase, STAGE_A_PHASES } from '../src/backprop/core/phase-machine';
 import { evaluate } from '../src/backprop/core/stage-a';
 
 describe('shared mechanisms',()=>{
@@ -13,4 +13,13 @@ describe('shared mechanisms',()=>{
  it('snapshots accessor-backed event fields once before reducing',()=>{let afterReads=0; const event={type:'REVOLUTION' as const,sequence:0,before:0,get after(){afterReads+=1; return afterReads<=2?1:Number.MAX_SAFE_INTEGER+1;}}; expect(reduceRevolution(createRevolutionCounter(),event)).toEqual({count:1}); expect(afterReads).toBe(1);});
  it('integrates a constant shaft input',()=>{let s=createIntegrator(2,.5); for(let i=0;i<4;i++) s=integrate(s); expect(s.integratedQuantity).toBe(4);});
  it('runs the same explicit phase cycle',()=>{const m=runPhaseCycle(createPhaseMachine(evaluate({x1:2,x2:3,w1:0,w2:0,target:10,learningRate:.01}))); expect(m.events.map(e=>e.phase)).toEqual(STAGE_A_PHASES); expect(m.state.loss).toBeLessThan(50);});
+ it('finishes a partially stepped cycle without entering the next cycle',()=>{
+   const initial=createPhaseMachine(evaluate({x1:2,x2:3,w1:0,w2:0,target:10,learningRate:.01}));
+   let partial=initial;
+   for(let i=0;i<3;i+=1) partial=stepPhase(partial);
+   const completed=runPhaseCycle(partial);
+   expect(completed.phaseIndex).toBe(0);
+   expect(completed.events.map(e=>e.phase)).toEqual(STAGE_A_PHASES);
+   expect(completed.state.loss).toBeLessThan(initial.state.loss);
+ });
 });
