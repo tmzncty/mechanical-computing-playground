@@ -28,16 +28,37 @@ function addSafe(left: number, right: number): number {
   if (!Number.isSafeInteger(result)) throw new InvalidPrintingLedgerError('accumulator exceeds safe integer range');
   return result;
 }
-function assertLine(line: Readonly<PrintedLine>, index: number): void {
-  if (line.sequence !== index || !['ITEM', 'SUBTOTAL', 'TOTAL'].includes(line.kind)) throw new InvalidPrintingLedgerError('invalid printed line identity/order');
-  nonNegativeSafe(line.value, 'printed value');
+function assertLine(line: unknown, index: number): asserts line is PrintedLine {
+  if (line === null || typeof line !== 'object' || Array.isArray(line)) throw new InvalidPrintingLedgerError('printed line must be a non-array object');
+  const record = line as Partial<PrintedLine>;
+  if (record.sequence !== index || !['ITEM', 'SUBTOTAL', 'TOTAL'].includes(record.kind as PrintedLineKind)) throw new InvalidPrintingLedgerError('invalid printed line identity/order');
+  nonNegativeSafe(record.value as number, 'printed value');
 }
 export function assertPrintingLedgerState(state: Readonly<PrintingLedgerState>): void {
   if (state.mechanismId !== PRINTING_LEDGER_ID) throw new InvalidPrintingLedgerError('printing-ledger mechanism id mismatch');
   nonNegativeSafe(state.accumulator, 'accumulator'); nonNegativeSafe(state.operationIndex, 'operation index'); nonNegativeSafe(state.itemCount, 'item count');
   if (!Array.isArray(state.printedLines) || state.printedLines.length !== state.operationIndex) throw new InvalidPrintingLedgerError('printed record/operation consistency failed');
-  state.printedLines.forEach(assertLine);
-  if (state.printedLines.filter(line => line.kind === 'ITEM').length !== state.itemCount) throw new InvalidPrintingLedgerError('item count/record consistency failed');
+  let recordedAccumulator = 0;
+  let recordedItemCount = 0;
+  for (let index = 0; index < state.printedLines.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(state.printedLines, index)) throw new InvalidPrintingLedgerError('printed record must be a dense array');
+    const line = state.printedLines[index];
+    assertLine(line, index);
+    if (line.kind === 'ITEM') {
+      if (line.value === 0) throw new InvalidPrintingLedgerError('item amount must be positive');
+      recordedAccumulator = addSafe(recordedAccumulator, line.value);
+      recordedItemCount += 1;
+    } else if (line.kind === 'SUBTOTAL') {
+      if (recordedAccumulator === 0) throw new InvalidPrintingLedgerError('subtotal requires accumulated items');
+      if (line.value !== recordedAccumulator) throw new InvalidPrintingLedgerError('subtotal value mismatch');
+    } else {
+      if (recordedAccumulator === 0) throw new InvalidPrintingLedgerError('total requires accumulated items');
+      if (line.value !== recordedAccumulator) throw new InvalidPrintingLedgerError('total value mismatch');
+      recordedAccumulator = 0;
+    }
+  }
+  if (recordedItemCount !== state.itemCount) throw new InvalidPrintingLedgerError('item count/record consistency failed');
+  if (recordedAccumulator !== state.accumulator) throw new InvalidPrintingLedgerError('printed record/accumulator consistency failed');
 }
 export function createPrintingLedger(): PrintingLedgerState {
   return { mechanismId: PRINTING_LEDGER_ID, accumulator: 0, printedLines: [], operationIndex: 0, itemCount: 0 };
@@ -79,6 +100,7 @@ export function transitionPrintingLedger(state: Readonly<PrintingLedgerState>, a
   return { state: reducePrintingLedgerEvent(state, event), events: [event] };
 }
 export function tracePrintingLedger(actions: readonly PrintingLedgerAction[], initial = createPrintingLedger()): PrintingLedgerTrace {
+  assertPrintingLedgerState(initial);
   let state = structuredClone(initial); const events: PrintingLedgerEvent[] = [];
   for (const action of actions) { const result = transitionPrintingLedger(state, action); events.push(...result.events); state = result.state; }
   return { initialState: structuredClone(initial), actions: structuredClone(actions), events, finalState: state };

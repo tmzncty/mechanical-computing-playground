@@ -1,7 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { createPrintingLedger, InvalidPrintingLedgerError, PRINTING_LEDGER_PRESET, replayPrintingLedger, tracePrintingLedger, transitionPrintingLedger, type PrintingLedgerAction, type PrintingLedgerEvent } from '../src/mechanisms/printing-ledger';
+import { assertPrintingLedgerState, createPrintingLedger, InvalidPrintingLedgerError, PRINTING_LEDGER_PRESET, reducePrintingLedgerEvent, replayPrintingLedger, tracePrintingLedger, transitionPrintingLedger, type PrintedLine, type PrintingLedgerAction, type PrintingLedgerEvent, type PrintingLedgerState } from '../src/mechanisms/printing-ledger';
 import { getOutputContractProfile, OUTPUT_CONTRACT_PROFILES } from '../src/exhibits/output-contracts';
 const clone = <T>(value: T): T => structuredClone(value);
+const ledgerState = (accumulator: number, printedLines: PrintedLine[], itemCount: number): PrintingLedgerState => ({
+  ...createPrintingLedger(),
+  accumulator,
+  printedLines,
+  operationIndex: printedLines.length,
+  itemCount,
+});
+const sparseLedgerState = (hole: 'start' | 'middle' | 'end'): PrintingLedgerState => {
+  const printedLines = Array<PrintedLine>(hole === 'middle' ? 3 : 2);
+  if (hole === 'start') printedLines[1] = { sequence: 1, kind: 'ITEM', value: 12 };
+  if (hole === 'middle') {
+    printedLines[0] = { sequence: 0, kind: 'ITEM', value: 12 };
+    printedLines[2] = { sequence: 2, kind: 'SUBTOTAL', value: 12 };
+  }
+  if (hole === 'end') printedLines[0] = { sequence: 0, kind: 'ITEM', value: 12 };
+  return ledgerState(12, printedLines, 1);
+};
+const disguisedPrintedLine = (shape: 'array' | 'function' | 'null'): PrintedLine => {
+  if (shape === 'null') return null as unknown as PrintedLine;
+  const value = shape === 'array' ? [] : () => undefined;
+  return Object.assign(value, { sequence: 0, kind: 'ITEM', value: 12 }) as unknown as PrintedLine;
+};
+const expectInvalidPrintedLine = (operation: () => unknown): void => {
+  expect(operation).toThrow(InvalidPrintingLedgerError);
+  expect(operation).toThrow('printed line must be a non-array object');
+};
 
 describe('generic P/M printing ledger', () => {
   it('persists two item lines while accumulating 12 + 8', () => {
@@ -26,6 +52,77 @@ describe('generic P/M printing ledger', () => {
   it('is deterministic and replayable', () => {
     const left = tracePrintingLedger(PRINTING_LEDGER_PRESET); const right = tracePrintingLedger(PRINTING_LEDGER_PRESET);
     expect(left).toEqual(right); expect(replayPrintingLedger(left)).toEqual(left.finalState);
+  });
+  it.each([
+    ['stale accumulator', ledgerState(99, [{ sequence: 0, kind: 'ITEM', value: 12 }], 1), /printed record\/accumulator consistency failed/],
+    ['zero-valued item', ledgerState(0, [{ sequence: 0, kind: 'ITEM', value: 0 }], 1), /item amount must be positive/],
+    ['orphan subtotal', ledgerState(0, [{ sequence: 0, kind: 'SUBTOTAL', value: 0 }], 0), /subtotal requires accumulated items/],
+    ['wrong subtotal', ledgerState(12, [{ sequence: 0, kind: 'ITEM', value: 12 }, { sequence: 1, kind: 'SUBTOTAL', value: 99 }], 1), /subtotal value mismatch/],
+    ['wrong total', ledgerState(0, [{ sequence: 0, kind: 'ITEM', value: 12 }, { sequence: 1, kind: 'TOTAL', value: 99 }], 1), /total value mismatch/],
+  ] as const)('rejects a causally impossible %s state', (_name, state, diagnostic) => {
+    expect(() => assertPrintingLedgerState(state)).toThrow(diagnostic);
+  });
+  it('rejects a printed record whose running total exceeds the safe-integer range', () => {
+    const impossible = ledgerState(0, [
+      { sequence: 0, kind: 'ITEM', value: Number.MAX_SAFE_INTEGER },
+      { sequence: 1, kind: 'ITEM', value: 1 },
+    ], 2);
+    expect(() => assertPrintingLedgerState(impossible)).toThrow(/accumulator exceeds safe integer range/);
+  });
+  it.each(['start', 'middle', 'end'] as const)('rejects a sparse printed record with a hole at the %s', hole => {
+    expect(() => assertPrintingLedgerState(sparseLedgerState(hole))).toThrow(/printed record must be a dense array/);
+  });
+  it.each(['assert', 'transition', 'reduce', 'trace', 'replay'] as const)('rejects an array masquerading as a printed line through %s', entryPoint => {
+    const impossible = ledgerState(12, [disguisedPrintedLine('array')], 1);
+    const validState = tracePrintingLedger([{ type: 'ADD_ITEM', amount: 12 }]).finalState;
+    const totalEvent = transitionPrintingLedger(validState, { type: 'PRINT_TOTAL' }).events[0];
+    const operation = {
+      assert: () => assertPrintingLedgerState(impossible),
+      transition: () => transitionPrintingLedger(impossible, { type: 'PRINT_TOTAL' }),
+      reduce: () => reducePrintingLedgerEvent(impossible, totalEvent),
+      trace: () => tracePrintingLedger([], impossible),
+      replay: () => replayPrintingLedger({ initialState: impossible, actions: [], events: [], finalState: clone(impossible) }),
+    }[entryPoint];
+    expectInvalidPrintedLine(operation);
+  });
+  it.each(['null', 'function'] as const)('rejects a %s printed line with a stable domain error', shape => {
+    const impossible = ledgerState(12, [disguisedPrintedLine(shape)], 1);
+    expectInvalidPrintedLine(() => assertPrintingLedgerState(impossible));
+  });
+  it('accepts a dense plain-object printed record', () => {
+    const state = ledgerState(12, [{ sequence: 0, kind: 'ITEM', value: 12 }], 1);
+    expect(() => assertPrintingLedgerState(state)).not.toThrow();
+    expect(replayPrintingLedger(tracePrintingLedger([], state))).toEqual(state);
+  });
+  it('fails closed for an impossible initial state even when a trace has no actions', () => {
+    const impossible = ledgerState(99, [{ sequence: 0, kind: 'ITEM', value: 12 }], 1);
+    expect(() => tracePrintingLedger([], impossible)).toThrow(/printed record\/accumulator consistency failed/);
+    expect(() => replayPrintingLedger({ initialState: impossible, actions: [], events: [], finalState: clone(impossible) })).toThrow(/printed record\/accumulator consistency failed/);
+  });
+  it('accepts a causally valid persistent snapshot in a zero-action trace', () => {
+    const initial = tracePrintingLedger(PRINTING_LEDGER_PRESET).finalState;
+    const trace = tracePrintingLedger([], initial);
+    expect(replayPrintingLedger(trace)).toEqual(initial);
+  });
+  it('accepts a new accumulation batch after a total', () => {
+    const trace = tracePrintingLedger([
+      { type: 'ADD_ITEM', amount: 12 },
+      { type: 'PRINT_TOTAL' },
+      { type: 'ADD_ITEM', amount: 5 },
+    ]);
+    expect(trace.finalState).toMatchObject({ accumulator: 5, itemCount: 2 });
+    expect(trace.finalState.printedLines.map(line => `${line.kind}:${line.value}`)).toEqual(['ITEM:12', 'TOTAL:12', 'ITEM:5']);
+    expect(replayPrintingLedger(trace)).toEqual(trace.finalState);
+  });
+  it('accepts repeated valid subtotals without clearing the running total', () => {
+    const trace = tracePrintingLedger([
+      { type: 'ADD_ITEM', amount: 12 },
+      { type: 'PRINT_SUBTOTAL' },
+      { type: 'PRINT_SUBTOTAL' },
+    ]);
+    expect(trace.finalState).toMatchObject({ accumulator: 12, itemCount: 1 });
+    expect(trace.finalState.printedLines.map(line => `${line.kind}:${line.value}`)).toEqual(['ITEM:12', 'SUBTOTAL:12', 'SUBTOTAL:12']);
+    expect(replayPrintingLedger(trace)).toEqual(trace.finalState);
   });
   it.each(['sequence', 'value', 'before', 'after', 'kind', 'final', 'omit', 'action'] as const)('rejects %s tampering', kind => {
     const trace = clone(tracePrintingLedger(PRINTING_LEDGER_PRESET));
