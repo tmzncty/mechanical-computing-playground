@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertRegisterLifecycleState,
   createRegisterLifecycle,
   InvalidRegisterLifecycleError,
+  reduceRegisterLifecycleEvent,
   replayRegisterLifecycle,
   traceRegisterLifecycle,
   transitionRegisterLifecycle,
   type RegisterLifecycleAction,
+  type RegisterLifecycleState,
   type RegisterLifecycleTrace,
 } from '../src/mechanisms/register-lifecycle';
 
@@ -16,6 +19,9 @@ const actions: RegisterLifecycleAction[] = [
   { type: 'CLEAR_RESULT_REGISTER', cycleId: 'clear-result' },
 ];
 const fullTrace = () => traceRegisterLifecycle(createRegisterLifecycle(8478, 27), actions);
+const withCounters = (
+  counters: Pick<RegisterLifecycleState, 'clearActionCount' | 'humanOperationCount' | 'nextSequence'>,
+): RegisterLifecycleState => ({ ...createRegisterLifecycle(7, 3), ...counters });
 
 describe('generic dual-register lifecycle', () => {
   it('creates valid non-zero independent registers', () => {
@@ -50,6 +56,68 @@ describe('generic dual-register lifecycle', () => {
     const trace = fullTrace();
     expect(replayRegisterLifecycle(trace)).toEqual(trace.finalState);
     expect(trace.finalState).toMatchObject({ resultRegister: 0, revolutionRegister: { count: 0 }, mode: 'SUBTRACT_DIVIDE', clearActionCount: 2, humanOperationCount: 3 });
+  });
+
+  it.each([
+    ['human operations trail the event sequence', { clearActionCount: 0, humanOperationCount: 0, nextSequence: 1 }],
+    ['human operations lead the event sequence', { clearActionCount: 0, humanOperationCount: 1, nextSequence: 0 }],
+    ['clear actions exceed all human operations', { clearActionCount: 1, humanOperationCount: 0, nextSequence: 0 }],
+  ] as const)('rejects counter-inconsistent persisted state when %s', (_label, counters) => {
+    expect(() => assertRegisterLifecycleState(withCounters(counters))).toThrow(InvalidRegisterLifecycleError);
+  });
+
+  it('enforces counter consistency at transition, reduction, trace and replay boundaries', () => {
+    const inconsistent = withCounters({ clearActionCount: 0, humanOperationCount: 0, nextSequence: 1 });
+    const action: RegisterLifecycleAction = { type: 'SET_MODE', cycleId: 'next', mode: 'SUBTRACT_DIVIDE' };
+    const event = {
+      mechanismId: 'register-lifecycle',
+      type: 'MODE_SELECTED',
+      cycleId: 'next',
+      sequence: 1,
+      modeBefore: 'ADD_MULTIPLY',
+      modeAfter: 'SUBTRACT_DIVIDE',
+      humanBefore: 0,
+      humanAfter: 1,
+    } as const;
+
+    expect(() => transitionRegisterLifecycle(inconsistent, action)).toThrow(InvalidRegisterLifecycleError);
+    expect(() => reduceRegisterLifecycleEvent(inconsistent, event)).toThrow(InvalidRegisterLifecycleError);
+    expect(() => traceRegisterLifecycle(inconsistent, [action])).toThrow(InvalidRegisterLifecycleError);
+
+    const zeroActionTrace = (state: RegisterLifecycleState): RegisterLifecycleTrace => ({
+      initialState: clone(state),
+      actions: [],
+      events: [],
+      finalState: clone(state),
+    });
+    expect(() => replayRegisterLifecycle(zeroActionTrace(inconsistent))).toThrow(InvalidRegisterLifecycleError);
+    const excessiveClears = withCounters({ clearActionCount: 1, humanOperationCount: 0, nextSequence: 0 });
+    expect(() => replayRegisterLifecycle(zeroActionTrace(excessiveClears))).toThrow(InvalidRegisterLifecycleError);
+  });
+
+  it('accepts consistent persisted counters, including zero and safe-integer exhaustion', () => {
+    expect(() => assertRegisterLifecycleState(withCounters({ clearActionCount: 0, humanOperationCount: 0, nextSequence: 0 }))).not.toThrow();
+
+    const persisted = traceRegisterLifecycle(createRegisterLifecycle(7, 3), [
+      { type: 'CLEAR_RESULT_REGISTER', cycleId: 'clear-once' },
+      { type: 'SET_MODE', cycleId: 'persisted-mode', mode: 'SUBTRACT_DIVIDE' },
+      { type: 'CLEAR_RESULT_REGISTER', cycleId: 'clear-twice' },
+    ]).finalState;
+    const trace = traceRegisterLifecycle(persisted, [{ type: 'SET_MODE', cycleId: 'resume', mode: 'SUBTRACT_DIVIDE' }]);
+    expect(replayRegisterLifecycle(trace)).toEqual(trace.finalState);
+    expect(trace.finalState).toMatchObject({ clearActionCount: 2, humanOperationCount: 4, nextSequence: 4 });
+
+    const exhausted = {
+      ...withCounters({
+        clearActionCount: Number.MAX_SAFE_INTEGER,
+        humanOperationCount: Number.MAX_SAFE_INTEGER,
+        nextSequence: Number.MAX_SAFE_INTEGER,
+      }),
+      resultRegister: 0,
+    };
+    expect(() => assertRegisterLifecycleState(exhausted)).not.toThrow();
+    expect(traceRegisterLifecycle(exhausted, []).finalState).toEqual(exhausted);
+    expect(() => transitionRegisterLifecycle(exhausted, { type: 'SET_MODE', cycleId: 'overflow', mode: 'ADD_MULTIPLY' })).toThrow(/safe integer range/);
   });
 
   it.each(['before', 'target', 'sequence', 'order', 'counter', 'final'] as const)('rejects forged %s', kind => {

@@ -53,6 +53,8 @@ export function assertRegisterLifecycleState(state: Readonly<RegisterLifecycleSt
   safeCount(state.clearActionCount, 'clear-action count');
   safeCount(state.humanOperationCount, 'human-operation count');
   safeCount(state.nextSequence, 'next sequence');
+  if (state.humanOperationCount !== state.nextSequence) throw new InvalidRegisterLifecycleError('human-operation count must equal next sequence');
+  if (state.clearActionCount > state.humanOperationCount) throw new InvalidRegisterLifecycleError('clear-action count cannot exceed human-operation count');
 }
 
 export function createRegisterLifecycle(resultRegister = 0, revolutionCount = 0, mode: RegisterMode = 'ADD_MULTIPLY'): RegisterLifecycleState {
