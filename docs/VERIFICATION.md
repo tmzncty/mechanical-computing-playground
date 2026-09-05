@@ -505,6 +505,22 @@ Local browser smoke against Vite:
 
 No deployment check was performed for this not-yet-pushed commit; no claim that this upgraded comparison is already live is made.
 
+## 2026-09-05 — rotary carry causal-state integrity follow-up
+
+The exact current-main baseline `c9e2ea0efd9a1563d38fa854f0e2d09e9bcf0102` accepted direct-reducer paths that skipped or repeated a carry-caused boundary, emitted carry-out for a non-full-width chain, repeated an already-recorded carry-out, or completed a full-width chain without its explicit carry-out. It also accepted persisted phase/source/counter combinations that the deterministic producer cannot reach; the spurious carry-out path returned a state that failed the module's own assertion when checked separately.
+
+State validation now binds phase and source order to completed-transfer progress, requires full-width completion to retain carry-out, and validates the carry-out flag's runtime type. Each successful reducer branch revalidates its result. Carry-caused boundaries must advance exactly from the prior source, conditioning must follow the corresponding boundary, carry-out is a single full-width terminal event, and completion agrees with that terminal relationship. The initial non-carry boundary remains a state no-op, so its presence and singularity are properties of the action-derived full trace rather than the reducer state alone.
+
+- Node 20.19.5 and Node 22.20.0 focused tests — pass, 30 tests on each runtime
+- Node 20.19.5 and Node 22.20.0 full suite — pass, 433 tests across 22 files on each runtime
+- TypeScript typecheck and production build — pass on both runtimes; build artifact hashes are identical
+- bounded exhaustive state comparison (`width` 2 through 10, every depth) — 4,384,008 candidates, with all and only the 720 producer-reachable states accepted
+- bounded exhaustive reducer comparison (`width` 2 through 8, every depth) — 609,581 candidate events, with all and only the 399 independently expected transitions accepted
+- replay mutation check over those 399 accepted transitions — 1,960 deletions, repetitions, swaps, sequence changes and cycle changes rejected
+- `git diff --check` — pass
+
+No event vocabulary, public signature, arithmetic output, UI rendering, historical claim, evidence boundary, workflow or dependency changed.
+
 ## 2026-09-01 — carry architecture provenance and replay hardening
 
 The pre-edit remote-main baseline was 150 tests across 14 files. This slice separated Pascal's operational text, Cnam object description, CMU reconstruction, Felt US366945A, Felt US762520A, and Smithsonian Model A catalog roles; hardened key-driven state validation and action-derived replay; and added typed bilingual carry profiles below the unchanged generic visible-carry P/M interaction.
