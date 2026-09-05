@@ -5,8 +5,10 @@ import {
   type IntegratorEvent,
   type IntegratorState,
 } from '../../mechanisms/continuous-integrator';
+import { assertStableEnumerableDataTree, traceValuesEqual } from '../../core/trace';
 
 export const CONTINUOUS_FLOW_ID = 'continuous-mechanics-teaching-flow';
+const EVENTS_PER_FLOW_CYCLE = 6;
 
 export interface ContinuousFlowFixture { inputA: number; inputB: number; inspectionInterval: number; }
 export interface ContinuousFlowState {
@@ -66,7 +68,12 @@ export function reduceContinuousFlowEvent(state: Readonly<ContinuousFlowState>, 
 
 export function createContinuousFlowTrace(fixture: ContinuousFlowFixture = { inputA: 2, inputB: 1, inspectionInterval: 0.5 }, cycles = 1): ContinuousFlowTrace {
   if (!Number.isSafeInteger(cycles) || cycles <= 0) throw new InvalidContinuousFlowError('cycles must be a positive safe integer');
-  const initialState = createContinuousFlowState(fixture);
+  const recordedFixture: ContinuousFlowFixture = {
+    inputA: fixture.inputA,
+    inputB: fixture.inputB,
+    inspectionInterval: fixture.inspectionInterval,
+  };
+  const initialState = createContinuousFlowState(recordedFixture);
   let state = initialState;
   const events: ContinuousFlowEvent[] = [];
   type WithoutBase<T> = T extends BaseEvent ? Omit<T, keyof BaseEvent> : never;
@@ -75,14 +82,14 @@ export function createContinuousFlowTrace(fixture: ContinuousFlowFixture = { inp
     state = reduceContinuousFlowEvent(state, full); events.push(full);
   };
   for (let cycle = 0; cycle < cycles; cycle += 1) {
-    push({ type: 'INPUTS_OBSERVED', inputA: fixture.inputA, inputB: fixture.inputB });
-    const sum = add(fixture.inputA, fixture.inputB, 'adder output');
-    push({ type: 'ADDER_RELATION_APPLIED', inputA: fixture.inputA, inputB: fixture.inputB, sum });
+    push({ type: 'INPUTS_OBSERVED', inputA: recordedFixture.inputA, inputB: recordedFixture.inputB });
+    const sum = add(recordedFixture.inputA, recordedFixture.inputB, 'adder output');
+    push({ type: 'ADDER_RELATION_APPLIED', inputA: recordedFixture.inputA, inputB: recordedFixture.inputB, sum });
     const integration = transitionIntegrator(state.integrator, { type: 'OBSERVE_AND_INTEGRATE', cycleId: `integration-${cycle}`, inputQuantity: sum });
     for (const integratorEvent of integration.events) push({ type: 'INTEGRATOR_EVENT', integratorEvent });
     push({ type: 'OUTPUT_TRACED', integratedQuantity: integration.state.integratedQuantity, cycleBefore: cycle, cycleAfter: cycle + 1 });
   }
-  return { fixture: structuredClone(fixture), initialState: structuredClone(initialState), events, finalState: state };
+  return { fixture: recordedFixture, initialState: structuredClone(initialState), events, finalState: state };
 }
 
 export function stateAtContinuousEvent(trace: Readonly<ContinuousFlowTrace>, count: number): ContinuousFlowState {
@@ -90,7 +97,26 @@ export function stateAtContinuousEvent(trace: Readonly<ContinuousFlowTrace>, cou
   return trace.events.slice(0, count).reduce(reduceContinuousFlowEvent, structuredClone(trace.initialState));
 }
 export function replayContinuousFlow(trace: Readonly<ContinuousFlowTrace>): ContinuousFlowState {
-  const replayed = stateAtContinuousEvent(trace, trace.events.length);
-  if (JSON.stringify(replayed) !== JSON.stringify(trace.finalState)) throw new InvalidContinuousFlowError('flow replay final state mismatch');
-  return replayed;
+  try {
+    assertStableEnumerableDataTree(trace, 'continuous-flow trace requires stable enumerable data');
+    if (
+      !Array.isArray(trace.events)
+      || trace.events.length === 0
+      || trace.events.length % EVENTS_PER_FLOW_CYCLE !== 0
+    ) {
+      throw new InvalidContinuousFlowError('continuous-flow trace has an invalid event count');
+    }
+    const replayed = stateAtContinuousEvent(trace, trace.events.length);
+    const expected = createContinuousFlowTrace(
+      trace.fixture,
+      trace.events.length / EVENTS_PER_FLOW_CYCLE,
+    );
+    if (!traceValuesEqual(expected, trace)) {
+      throw new InvalidContinuousFlowError('continuous-flow trace is not fixture-derived');
+    }
+    return replayed;
+  } catch (error) {
+    if (error instanceof InvalidContinuousFlowError) throw error;
+    throw new InvalidContinuousFlowError('invalid continuous-flow trace data');
+  }
 }

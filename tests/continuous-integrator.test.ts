@@ -14,6 +14,7 @@ import {
   replayContinuousFlow,
   stateAtContinuousEvent,
   type ContinuousFlowEvent,
+  type ContinuousFlowTrace,
 } from '../src/exhibits/continuous-flow';
 
 const clone = <T>(value: T): T => structuredClone(value);
@@ -101,6 +102,65 @@ describe('continuous mechanics teaching flow', () => {
     expect(trace.finalState.integrator).toMatchObject({ independentQuantity: 1, integratedQuantity: 3, sampleCount: 2 });
     expect(replayContinuousFlow(trace)).toEqual(trace.finalState);
     expect(createContinuousFlowTrace(undefined, 2)).toEqual(trace);
+  });
+
+  it('accepts serialized traces and ignores object member insertion order', () => {
+    const canonical = createContinuousFlowTrace(undefined, 2);
+    const reverseEntries = (value: object) => Object.fromEntries(Object.entries(value).reverse());
+    const reordered = Object.fromEntries(
+      Object.entries(canonical).reverse().map(([key, value]) => [
+        key,
+        key === 'events'
+          ? canonical.events.map((event) => reverseEntries(event))
+          : value !== null && typeof value === 'object' && !Array.isArray(value)
+            ? reverseEntries(value)
+            : value,
+      ]),
+    ) as unknown as ContinuousFlowTrace;
+
+    expect(JSON.stringify(reordered)).not.toBe(JSON.stringify(canonical));
+    expect(replayContinuousFlow(reordered)).toEqual(canonical.finalState);
+    expect(replayContinuousFlow(JSON.parse(JSON.stringify(canonical)) as ContinuousFlowTrace)).toEqual(canonical.finalState);
+  });
+
+  it('binds replay to the fixture that generated the recorded flow', () => {
+    const trace = clone(createContinuousFlowTrace());
+    trace.fixture.inputA = 99;
+
+    expect(() => replayContinuousFlow(trace)).toThrow(/fixture-derived/);
+  });
+
+  it('records only the supported fixture fields from an extended caller object', () => {
+    const fixture = {
+      inputA: 2,
+      inputB: 1,
+      inspectionInterval: 0.5,
+      unsupported: true,
+    };
+    const trace = createContinuousFlowTrace(fixture);
+
+    expect(Reflect.ownKeys(trace.fixture)).toEqual(['inputA', 'inputB', 'inspectionInterval']);
+    expect(replayContinuousFlow(trace)).toEqual(trace.finalState);
+  });
+
+  it('rejects unsupported enumerable trace shape instead of losing it during comparison', () => {
+    const mutations: Array<(trace: ContinuousFlowTrace) => void> = [
+      (trace) => { (trace.finalState as ContinuousFlowTrace['finalState'] & { unsupported?: unknown }).unsupported = undefined; },
+      (trace) => { (trace.events[0] as ContinuousFlowEvent & { unsupported?: unknown }).unsupported = undefined; },
+      (trace) => { (trace.events as ContinuousFlowEvent[] & { note?: unknown }).note = true; },
+      (trace) => { (trace.fixture as ContinuousFlowTrace['fixture'] & { unsupported?: unknown }).unsupported = true; },
+      (trace) => { (trace.fixture as ContinuousFlowTrace['fixture'] & { unsupported?: unknown }).unsupported = undefined; },
+      (trace) => { Object.defineProperty(trace.fixture, Symbol('unsupported'), { enumerable: true, value: true }); },
+      (trace) => { delete (trace.fixture as Partial<ContinuousFlowTrace['fixture']>).inputA; },
+      (trace) => { trace.fixture = Object.create(trace.fixture) as ContinuousFlowTrace['fixture']; },
+      (trace) => { delete trace.events[0]; },
+    ];
+
+    for (const mutate of mutations) {
+      const trace = clone(createContinuousFlowTrace());
+      mutate(trace);
+      expect(() => replayContinuousFlow(trace)).toThrow(InvalidContinuousFlowError);
+    }
   });
 
   it.each(['sequence', 'sum', 'integration', 'final', 'claim'] as const)('rejects %s tampering', (kind) => {

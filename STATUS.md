@@ -1,6 +1,6 @@
 # Current Status
 
-Last reconciled on 2026-09-02 after bounding the complement-register v2 trace to one forward-add action plus O(width) carry summaries.
+Last reconciled on 2026-09-05 after binding the continuous-flow replay to its recorded fixture and exact enumerable trace shape.
 
 This file is the **current-state authority** for the repository. `ROADMAP.md` describes where the project should go; `IMPLEMENTATION_PLAN.md` is still useful as a dependency/design specification, but many of its checkboxes predate later implementation and must not be treated as the live task ledger.
 
@@ -42,7 +42,7 @@ Remote CI run `33437862103` passed for the previous operator-division checkpoint
 - generic deterministic printing ledger separating working accumulator state from structured persistent ITEM/SUBTOTAL/TOTAL lines, including subtotal retention, total clearing, replay, and tamper rejection;
 - typed output-contract profiles separating identified register-only/printing objects, primary total/subtotal patent semantics, and Difference Engine persistent-output roles;
 - generic continuous integrator with independent/input/integrated quantities, P/M inspection interval, ordered observation/advance events, safe numeric validation, and action-derived replay binding actions, cycle ownership, ordered events and final state;
-- continuous-flow teaching chain with explicit adder relation and tracer-output boundary;
+- continuous-flow teaching chain with explicit adder relation, tracer-output boundary, and fixture-derived fail-closed replay;
 - shared mechanism core and trace/replay support.
 
 These are not all historical geometric reconstructions. Several intentionally model functional behavior only.

@@ -1,5 +1,19 @@
 # Verification record
 
+## 2026-09-05 — continuous-flow fixture-derived replay
+
+The exact current-main baseline `c9e2ea0efd9a1563d38fa854f0e2d09e9bcf0102` accepted two contradictory continuous-flow traces: changing only `fixture.inputA` from `2` to `99` did not affect replay, and an unsupported enumerable `undefined` field on `finalState` disappeared under `JSON.stringify`. The first case detached the recorded provenance from the events it purported to generate; the second made accepted in-memory trace shape differ from serialized data.
+
+Continuous-flow generation now snapshots exactly the three supported fixture fields once before deriving state and events. Replay preflights stable enumerable data, checks the deterministic six-event cycle envelope, replays every event through the reducer, independently regenerates the complete trace from its fixture and cycle count, and compares the exact enumerable graph with the shared insertion-order-independent trace comparator. JSON round trips and reordered object members remain accepted. Fixture-only substitution, unsupported string/Symbol fields (including fixture extensions), extended or sparse event arrays, event changes and endpoint changes fail closed as `InvalidContinuousFlowError`. No arithmetic transition, event vocabulary, historical claim or browser rendering changed.
+
+- `npm run typecheck` — pass
+- `npm test` — pass, 424 tests across 22 files
+- `npm run build` — pass
+- `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/ci.yml .github/workflows/pages.yml` — pass
+- `git diff --check` — pass
+
+No browser or deployment check was performed because this slice changes replay acceptance, tests, and project records only; canonical UI output is unchanged.
+
 ## 2026-09-02 — complement-register structural replay equality
 
 The exact remote-main baseline `e3788aaba731d5594d9caa70a0475b9452f6db15` reproduced two complementary fixture-integrity failures: reordered but otherwise identical object members were rejected, while an unsupported enumerable `undefined` field on `finalState` was discarded by `JSON.stringify` and accepted. Complement replay now validates the final state and uses the shared order-independent exact comparison rather than JSON serialization.
