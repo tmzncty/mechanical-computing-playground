@@ -1,6 +1,6 @@
 # Current Status
 
-Last reconciled on 2026-09-08 after making the existing Controlled-Key lesson operable through its deterministic action model.
+Last reconciled on 2026-09-08 after verifying Visible Carry's focused-control Space ownership and case-insensitive false editing boundary together with the operable Controlled-Key workbench and action-bound interlock replay.
 
 This file is the **current-state authority** for the repository. `ROADMAP.md` describes where the project should go; `IMPLEMENTATION_PLAN.md` is still useful as a dependency/design specification, but many of its checkboxes predate later implementation and must not be treated as the live task ledger.
 
@@ -13,7 +13,7 @@ This file is the **current-state authority** for the repository. `ROADMAP.md` de
 - GitHub Actions CI and a Pages deployment workflow.
 - Deterministic state/event/replay primitives under `src/core/`.
 - Golden carry fixtures under `fixtures/carry/`.
-- The latest local code verification (`docs/VERIFICATION.md`, 2026-09-08 UTC+8) reports Node 22 typecheck, 474 tests across 23 files, production build, and diff check passing. The Controlled-Key workbench passed actual English/Chinese browser checks at desktop and 390px widths, including keyboard operation and focus, error recovery, carry inspection, replay, and route/language state preservation.
+- The latest local integration verification (`docs/VERIFICATION.md`, 2026-09-08 UTC+8) reports Node 22.23.2 clean install, typecheck, 504 tests across 24 files, production build and diff check passing. The 86 English/Chinese Space-ownership browser cases pass (72 actual keyboard/mouse cases, 14 explicitly synthetic probes), as do four English/Chinese 1440px/390px Controlled-Key and Visible Carry coexistence workflows covering native Space actions, lock recovery, two carry transfers, read-only replay, focus, persistent status and route/language state. The individual historical checkpoints remain intact; no new remote CI or deployment is claimed.
 
 Remote CI run `33437862103` passed for the previous operator-division checkpoint `7bebcea2d187f0ed2411de4098c846963df8b32a`. This status still does **not** substitute for CI on later commits.
 
@@ -52,6 +52,7 @@ These are not all historical geometric reconstructions. Several intentionally mo
 The current browser shell contains non-empty routes or views for:
 
 - visible carry with the existing interactive P/M chain, Pascaline/Felt profiles, a Pascal/Belair-grounded one-direction complement panel, and a replayable generic complement-register v2 trace whose one forward-add action yields O(width) decimal-boundary summaries rather than one event per unit;
+- Visible Carry's background Space shortcut leaves native/custom interactive controls, editable contexts, already-canceled events, modifiers and IME composition with their own keyboard owner; Space activates the complete/reset/language buttons without a competing carry step;
 - interactive finite differences plus a separately stepped calculation→persistent-output responsibility flow;
 - interactive multiplication comparison with event/cycle stepping for direct multiplication;
 - interactive operator-division procedure for `8478 ÷ 314` exposing the negative residual in `OVERSHOOT_PENDING` before detection makes add-back correction legal;
