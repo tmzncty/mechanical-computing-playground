@@ -1,6 +1,7 @@
 import { traceDirectMultiplication, type DirectMultiplicationTrace } from '../../mechanisms/direct-multiplier';
 import { pinwheel } from '../../mechanisms/pinwheel';
 import { steppedDrum } from '../../mechanisms/stepped-drum';
+import { createRepeatedCrankTrace, REPEATED_SETTING_DIGITS, type RepeatedCrankTrace } from '../repeated-crank-multiplication';
 
 export interface MultiplicationPathSummary {
   finalResult: number;
@@ -36,10 +37,11 @@ export interface HistoricalProtocolEvidence {
 
 export interface MultiplicationComparison {
   value: number;
+  repeatedCrankTrace: RepeatedCrankTrace;
   historicalProtocolEvidence: HistoricalProtocolEvidence;
   repeatedAddition: MultiplicationPathSummary & { cranks: number; shifts: number };
-  steppedDrum: ReturnType<typeof steppedDrum>[];
-  pinwheel: ReturnType<typeof pinwheel>[];
+  steppedDrum: (ReturnType<typeof steppedDrum> & { settingColumn: number })[];
+  pinwheel: (ReturnType<typeof pinwheel> & { settingColumn: number })[];
   directMultiplication: MultiplicationPathSummary & { trace: DirectMultiplicationTrace };
   paths: {
     repeatedAddition: MultiplicationPathSummary;
@@ -52,9 +54,11 @@ export interface MultiplicationComparison {
 export const compare314x27 = (): MultiplicationComparison => {
   const multiplicand = 314;
   const multiplier = 27;
-  const value = 8478;
-  const steppedDrumOperations = [steppedDrum(7, 0), steppedDrum(2, 1)];
-  const pinwheelOperations = [pinwheel(7, 0), pinwheel(2, 1)];
+  const repeatedCrankTrace = createRepeatedCrankTrace();
+  const value = repeatedCrankTrace.finalState.accumulator;
+  // These objects describe the fixed setting columns, not multiplier repetitions.
+  const steppedDrumOperations = REPEATED_SETTING_DIGITS.map((digit, settingColumn) => ({ ...steppedDrum(digit, 0), settingColumn }));
+  const pinwheelOperations = REPEATED_SETTING_DIGITS.map((digit, settingColumn) => ({ ...pinwheel(digit, 0), settingColumn }));
   const trace = traceDirectMultiplication(multiplicand, multiplier);
 
   const repeatedAddition: MultiplicationPathSummary & { cranks: number; shifts: number } = {
@@ -70,18 +74,18 @@ export const compare314x27 = (): MultiplicationComparison => {
   };
   const steppedDrumSummary: MultiplicationPathSummary = {
     finalResult: value,
-    operatorRepetitions: 9,
-    operationCycles: 9,
-    carriageShifts: 1,
+    operatorRepetitions: repeatedCrankTrace.finalState.completedCranks,
+    operationCycles: repeatedCrankTrace.finalState.completedCranks,
+    carriageShifts: repeatedCrankTrace.finalState.shiftCount,
     multiplicationTableWork: 'operator supplies repetition; stepped geometry encodes the set multiplicand digits',
     claimType: 'P',
     evidenceLabel: 'pedagogical functional model, not source-specific geometry',
   };
   const pinwheelSummary: MultiplicationPathSummary = {
     finalResult: value,
-    operatorRepetitions: 9,
-    operationCycles: 9,
-    carriageShifts: 1,
+    operatorRepetitions: repeatedCrankTrace.finalState.completedCranks,
+    operationCycles: repeatedCrankTrace.finalState.completedCranks,
+    carriageShifts: repeatedCrankTrace.finalState.shiftCount,
     multiplicationTableWork: 'operator supplies repetition; active pins encode the set multiplicand digits',
     claimType: 'P',
     evidenceLabel: 'pedagogical functional model, not source-specific geometry',
@@ -120,6 +124,7 @@ export const compare314x27 = (): MultiplicationComparison => {
 
   return {
     value,
+    repeatedCrankTrace,
     historicalProtocolEvidence,
     repeatedAddition,
     steppedDrum: steppedDrumOperations,

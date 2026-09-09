@@ -1,6 +1,7 @@
 import { createCrankTrace, digitsToString, createDecimalRegister, reduceDecimalRegisterEvent } from './mechanism-core';
 import { squarePreset, cubicPreset, transitionDifference, type DifferenceState } from './mechanisms/difference-column';
 import { compare314x27 } from './exhibits/multiplication-compare';
+import { createRepeatedCrankState, nextRepeatedCrankAction, repeatedSettingTransfers, transitionRepeatedCrank, type RepeatedCrankAction, type RepeatedCrankEvent } from './exhibits/repeated-crank-multiplication';
 import { accumulatorValue, createKeyDrivenAccumulator, createKeyStrokeTrace, type KeyDrivenEvent } from './mechanisms/key-driven-accumulator';
 import { type IntegrityAction, type IntegrityEvent } from './mechanisms/key-stroke-integrity';
 import { applyWorkbenchAction, createKeyStrokeWorkbench, displayedWorkbenchState, returnToCurrentWorkbench, startWorkbenchReplay, stepWorkbenchReplay, type WorkbenchAction } from './exhibits/key-stroke-workbench';
@@ -44,6 +45,8 @@ let differenceOutputTrace: DifferenceOutputTrace = createDifferenceOutputTrace(d
 let differenceOutputIndex = 0;
 let differenceKeyboardBound = false;
 let directEventIndex = 0;
+let repeatedState = createRepeatedCrankState();
+let repeatedEvents: RepeatedCrankEvent[] = [];
 const divisionTrace = traceOperatorDivision(8478, 314, 1);
 let divisionEventIndex = 0;
 let controlState: SettingCrankInterlockState = createSettingCrankInterlock(314);
@@ -180,6 +183,7 @@ function finiteDifference() {
 }
 
 function multiplication() {
+  const previousFocus = document.activeElement?.id;
   const result = compare314x27();
   const directTrace = result.directMultiplication.trace;
   const directEvents = directTrace.events;
@@ -215,7 +219,7 @@ function multiplication() {
   shell(
     { en: 'What does “× 27” mean to a machine?', zh: '对一台机械来说，“× 27”到底意味着什么？' },
     { en: 'Multiplication becomes additions, crank turns, and a shift to the tens place.', zh: '乘法会被拆成加法、曲柄转动，以及向十位的移位。' },
-    `${evidencePanel(locale)}${scene('🧾', { en: 'A warehouse receives a bulk order', zh: '仓库收到一张批量订单' }, { en: 'There are 27 cartons with 314 screws in each. Your phone says 8,478 immediately.', zh: '一共 27 箱，每箱 314 颗螺丝。手机立刻给出 8,478。' }, { en: 'A clerk uses a hand-cranked calculator', zh: '过去的职员使用手摇计算机' }, { en: 'The clerk cannot press ×. They perform 7 turns in the ones place, shift the carriage, then 2 turns in the tens place.', zh: '职员没有乘号可按：先在个位转 7 次，移动位架，再在十位转 2 次。' })}${lesson({ en: 'Check the warehouse total: 27 cartons × 314 screws.', zh: '核对订单总数：27 箱 × 每箱 314 颗。' }, { en: 'First read only the line “27 = 7×1 + 2×10”.', zh: '先只看“27 = 7×1 + 2×10”这一行。' }, { en: 'A multi-digit multiplication is two smaller jobs: handle 7 ones, then handle 2 tens after shifting place value.', zh: '多位数乘法其实是两个小任务：先处理 7 个一，再移位处理 2 个十。' })}<section><div class="structure-callout">${evidenceBadge('TEACHING', locale)} ${t('These lanes compare operation recipes. They are not cross-sections of stepped drums or pinwheels.', '这些轨道比较的是操作步骤，不是阶梯鼓轮或拨轮的内部剖面。')}</div><div class="equation"><span>314 × 27</span><strong>= ${result.value}</strong></div><div class="place-decomposition"><div>27</div><span>=</span><b>7 × 1</b><span>+</span><b>2 × 10</b></div><div class="mechanism-lanes"><div><h3>${t('Repeated addition', '重复加法')}</h3><div class="motion">${Array.from({ length: 7 }, () => '<i>+</i>').join('')}<em>… ×27</em></div><p>${t('Add 314 twenty-seven times.', '把 314 连加 27 次。')}</p></div><div><h3>${t('Stepped drum', '阶梯鼓轮')}</h3><div class="drum" aria-label="stepped drum">▂▄▆█ <b>↻</b></div><p>${t('A selected depth exposes a chosen number of steps.', '用选择的深度决定有多少级台阶参与啮合。')}</p></div><div><h3>${t('Pinwheel', '拨轮')}</h3><div class="pinwheel" aria-label="pinwheel">${Array.from({ length: 10 }, (_, i) => `<i class="${i < 7 ? 'on' : ''}">•</i>`).join('')}</div><p>${t('Expose 7 pins, then shift the carriage for 2 tens.', '先露出 7 根销齿，再移动位架处理 2 个十。')}</p></div><div><h3>${t('Direct multiplication', '直接乘法')}</h3><div class="motion"><b>7 → 2198</b><em>1 cycle</em></div><p>${t('Select the pre-encoded 7× multiple in one cycle; shift, then select 2× in one cycle.', '一个周期选择预编码的 7 倍数；移位后，再用一个周期选择 2 倍数。')}</p></div></div><div class="structure-callout"><h3>${t('Historical operator/control evidence', '历史操作与控制证据')}</h3><p><b>H/E1 · US 558,913:</b> ${t('The patented design sets a multiplier figure with a lever/scale and calls for one complete crank rotation, repeated for each multiplier figure. Its left-starting order is expressly a convenience, not a universal production rule.', '该专利设计用拨杆/刻度选择一个乘数位，并要求完整转动曲柄一圈；每个乘数位重复一次。专利明确说从左侧开始只是便利安排，并非通用量产规则。')}</p><p><b>H/E1 · NMAH:</b> ${t('Identified lever-set Millionaires expose a 0–9 multiplier control, A/M/D/S selector, operating crank, visible set-number, multiplier/quotient and result/dividend registers, zeroing knobs, and carriage-shift control.', '已识别的拨杆式 Millionaire 实物具有 0–9 乘数控制、加乘除减选择器、操作曲柄、可见的设定数/乘数或商/结果或被除数寄存器、清零旋钮与位架移动控制。')}</p><p><b>P/M · ${t('repository trace', '本站轨迹')}:</b> ${t('Our 7 → shift → 2 order and generated 0–9 lookup table are deterministic teaching choices. They are not claims about production digit direction, automatic/manual shifting, timing, or control-plate geometry.', '本站的 7 → 移位 → 2 顺序和生成的 0–9 查找表是确定性的教学选择，并不声称量产机器的乘数位方向、自动/手动移位、时序或控制板几何。')}</p></div><div class="shift-demo"><span>314 × 7 = 2198</span><b>+</b><span class="shifted">314 × 2 × <mark>10</mark> = 6280</span><b>= 8478</b></div><p class="model-note">${t(`Direct path: ${result.directMultiplication.operationCycles} selection/operation cycles, ${result.directMultiplication.carriageShifts} carriage shift. The multiplier digit selects a multiple in the machine/control model instead of asking the operator for 27 repeated additions. Claim P: Steiger/Millionaire-informed functional model, not historical geometry.`, `直接乘法路径：${result.directMultiplication.operationCycles} 个选择/运算周期，${result.directMultiplication.carriageShifts} 次位架移位。乘数位在机器/控制模型中选择相应倍数，而不是让操作者重复加 27 次。声明类型 P：受 Steiger/Millionaire 研究启发的功能模型，不是历史几何复原。`)}</p><details><summary>${t('Direct-multiplication state/events', '直接乘法状态/事件')}</summary><pre>${result.directMultiplication.trace.events.map((event) => JSON.stringify(event)).join('\n')}</pre></details></section>`
+    `${evidencePanel(locale)}${scene('🧾', { en: 'A warehouse receives a bulk order', zh: '仓库收到一张批量订单' }, { en: 'There are 27 cartons with 314 screws in each. Your phone says 8,478 immediately.', zh: '一共 27 箱，每箱 314 颗螺丝。手机立刻给出 8,478。' }, { en: 'A clerk uses a hand-cranked calculator', zh: '过去的职员使用手摇计算机' }, { en: 'The clerk cannot press ×. They perform 7 turns in the ones place, shift the carriage, then 2 turns in the tens place.', zh: '职员没有乘号可按：先在个位转 7 次，移动位架，再在十位转 2 次。' })}${lesson({ en: 'Check the warehouse total: 27 cartons × 314 screws.', zh: '核对订单总数：27 箱 × 每箱 314 颗。' }, { en: 'First read only the line “27 = 7×1 + 2×10”.', zh: '先只看“27 = 7×1 + 2×10”这一行。' }, { en: 'A multi-digit multiplication is two smaller jobs: handle 7 ones, then handle 2 tens after shifting place value.', zh: '多位数乘法其实是两个小任务：先处理 7 个一，再移位处理 2 个十。' })}<section><div class="structure-callout">${evidenceBadge('TEACHING', locale)} ${t('These lanes compare operation recipes. They are not cross-sections of stepped drums or pinwheels.', '这些轨道比较的是操作步骤，不是阶梯鼓轮或拨轮的内部剖面。')}</div><div class="equation"><span>314 × 27</span><strong>= ${result.value}</strong></div><div class="place-decomposition"><div>27</div><span>=</span><b>7 × 1</b><span>+</span><b>2 × 10</b></div><div class="mechanism-lanes"><div><h3>${t('Repeated addition', '重复加法')}</h3><div class="motion">${Array.from({ length: 7 }, () => '<i>+</i>').join('')}<em>… ×27</em></div><p>${t('Add 314 twenty-seven times.', '把 314 连加 27 次。')}</p></div><div><h3>${t('Stepped drum', '阶梯鼓轮')}</h3><div class="drum" aria-label="stepped drum">▂▄▆█ <b>↻</b></div><p>${t('A setting digit selects effective steps, not the number of crank turns.', '设定数字决定有效阶梯数，而不是曲柄转动次数。')}</p></div><div><h3>${t('Pinwheel', '拨轮')}</h3><div class="fixed-pin-settings" aria-label="${t('Fixed 314 effective-pin setting', '固定 314 有效销齿设定')}">${[...repeatedState.settingDigits].reverse().map(digit => `<span><b>${digit}</b><small aria-hidden="true">${'•'.repeat(digit)}</small></span>`).join('')}</div><p>${t('Keep the 314 setting: seven turns, shift, then two turns.', '保持 314 设定：先转七次，移位，再转两次。')}</p></div><div><h3>${t('Direct multiplication', '直接乘法')}</h3><div class="motion"><b>7 → 2198</b><em>1 cycle</em></div><p>${t('Select the pre-encoded 7× multiple in one cycle; shift, then select 2× in one cycle.', '一个周期选择预编码的 7 倍数；移位后，再用一个周期选择 2 倍数。')}</p></div></div><div class="structure-callout"><h3>${t('Historical operator/control evidence', '历史操作与控制证据')}</h3><p><b>H/E1 · US 558,913:</b> ${t('The patented design sets a multiplier figure with a lever/scale and calls for one complete crank rotation, repeated for each multiplier figure. Its left-starting order is expressly a convenience, not a universal production rule.', '该专利设计用拨杆/刻度选择一个乘数位，并要求完整转动曲柄一圈；每个乘数位重复一次。专利明确说从左侧开始只是便利安排，并非通用量产规则。')}</p><p><b>H/E1 · NMAH:</b> ${t('Identified lever-set Millionaires expose a 0–9 multiplier control, A/M/D/S selector, operating crank, visible set-number, multiplier/quotient and result/dividend registers, zeroing knobs, and carriage-shift control.', '已识别的拨杆式 Millionaire 实物具有 0–9 乘数控制、加乘除减选择器、操作曲柄、可见的设定数/乘数或商/结果或被除数寄存器、清零旋钮与位架移动控制。')}</p><p><b>P/M · ${t('repository trace', '本站轨迹')}:</b> ${t('Our 7 → shift → 2 order and generated 0–9 lookup table are deterministic teaching choices. They are not claims about production digit direction, automatic/manual shifting, timing, or control-plate geometry.', '本站的 7 → 移位 → 2 顺序和生成的 0–9 查找表是确定性的教学选择，并不声称量产机器的乘数位方向、自动/手动移位、时序或控制板几何。')}</p></div><div class="shift-demo"><span>314 × 7 = 2198</span><b>+</b><span class="shifted">314 × 2 × <mark>10</mark> = 6280</span><b>= 8478</b></div><p class="model-note">${t(`Direct path: ${result.directMultiplication.operationCycles} selection/operation cycles, ${result.directMultiplication.carriageShifts} carriage shift. The multiplier digit selects a multiple in the machine/control model instead of asking the operator for 27 repeated additions. Claim P: Steiger/Millionaire-informed functional model, not historical geometry.`, `直接乘法路径：${result.directMultiplication.operationCycles} 个选择/运算周期，${result.directMultiplication.carriageShifts} 次位架移位。乘数位在机器/控制模型中选择相应倍数，而不是让操作者重复加 27 次。声明类型 P：受 Steiger/Millionaire 研究启发的功能模型，不是历史几何复原。`)}</p><details><summary>${t('Direct-multiplication state/events', '直接乘法状态/事件')}</summary><pre>${result.directMultiplication.trace.events.map((event) => JSON.stringify(event)).join('\n')}</pre></details></section>`
   );
 
   const rawEventDetails = document.querySelector('section details:last-of-type');
@@ -223,6 +227,7 @@ function multiplication() {
   workbench.className = 'direct-workbench';
   workbench.innerHTML = `<h3>${t('Step through the direct-multiplication path', '单步观察直接乘法路径')}</h3><div class='state-grid'><div><small>${t('multiplier selector', '乘数选择器')}</small><strong>${directState.selectedMultiplierDigit ?? '—'}</strong><span>${t('one selection per decimal digit', '每个十进制位选择一次')}</span></div><div><small>${t('selected table multiple', '乘法表选出的倍数')}</small><strong>${directState.selectedMultiplierDigit === null ? '—' : directState.selectedMultiple}</strong><span>${directState.selectedMultiplierDigit === null ? '314 × —' : '314 × ' + directState.selectedMultiplierDigit}</span></div><div><small>${t('carriage place', '位架数位')}</small><strong>×${10 ** directState.carriageOffset}</strong><span>${t('place value remains an explicit operation', '位值移位仍是显式操作')}</span></div><div><small>${t('accumulator', '累加器')}</small><strong>${directState.accumulator}</strong><span>${t('target: 8478', '目标：8478')}</span></div><div><small>${t('completed cycles', '已完成周期')}</small><strong>${directState.operationCycleCount} / ${result.directMultiplication.operationCycles}</strong><span>${t('human actions: ', '人工动作：')}${directState.humanOperationCount}</span></div></div><div class='controls'><button id='direct-step' ${directEventIndex >= directEvents.length ? 'disabled' : ''}>${t('Do one mechanism event', '执行一个机构动作')}</button><button id='direct-cycle' ${directEventIndex >= directEvents.length ? 'disabled' : ''}>${t('Complete one operating cycle', '完成一个操作周期')}</button><button class='secondary' id='direct-reset'>${t('Start again', '重新开始')}</button></div><div class='progress'><i style='width:${directEvents.length === 0 ? 100 : directEventIndex / directEvents.length * 100}%'></i></div><p class='status' aria-live='polite'>${t('Mechanism event', '机构动作')} ${directEventIndex} / ${directEvents.length}</p><details open><summary>${t('Replayable mechanism event log', '可重放的机构动作记录')}</summary><pre>${esc(directLog)}</pre></details>`;
   rawEventDetails?.replaceWith(workbench);
+  renderRepeatedCrankWorkbench(workbench);
 
   document.querySelector('#direct-step')?.addEventListener('click', () => {
     directEventIndex = Math.min(directEventIndex + 1, directEvents.length);
@@ -235,6 +240,82 @@ function multiplication() {
   document.querySelector('#direct-reset')?.addEventListener('click', () => {
     directEventIndex = 0;
     multiplication();
+  });
+  if (previousFocus === 'language-toggle') document.getElementById(previousFocus)?.focus({ preventScroll: true });
+}
+
+function renderRepeatedCrankWorkbench(directWorkbench: HTMLElement) {
+  const next = nextRepeatedCrankAction(repeatedState);
+  const transfers = repeatedSettingTransfers(repeatedState);
+  const placeName = (column: number) => [t('units', '个位'), t('tens', '十位'), t('hundreds', '百位'), t('thousands', '千位')][column];
+  const instruction = next === 'SHIFT_CARRIAGE'
+    ? t('Seven turns completed. Move the carriage: the current amount will not change.', '已转七次。现在移动位架：当前累加器数值不会改变。')
+    : next === null
+      ? t('Finished: 8478 from nine complete turns and one shift. Compare with the two direct cycles below.', '完成：九次完整曲柄和一次移位得到 8478。与下方直接乘法的两个周期比较。')
+      : t(`Turn once: add ${transfers.reduce((sum, transfer) => sum + transfer.contribution, 0)} with the same 314 setting.`, `转动一次：保持 314 设定，累加 ${transfers.reduce((sum, transfer) => sum + transfer.contribution, 0)}。`);
+  const status = `${t('Accumulator', '累加器')} ${repeatedState.accumulator}; ${t('complete turns', '完整转数')} ${repeatedState.completedCranks}; ${t('shifts', '移位')} ${repeatedState.shiftCount}. ${instruction}`;
+  const eventLog = repeatedEvents.map(event => event.type === 'CRANK_COMPLETED'
+    ? `${event.sequence + 1}. CRANK_COMPLETED · ${event.transfers.map(transfer => transfer.contribution).join(' + ')} = ${event.after.accumulator - event.before.accumulator} · ${event.before.accumulator} → ${event.after.accumulator}`
+    : `${event.sequence + 1}. CARRIAGE_SHIFTED · ×1 → ×10 · ${t('amount unchanged', '数值不变')} ${event.after.accumulator} · ${t('turns unchanged', '转数不变')} ${event.after.completedCranks}`
+  ).join('\n') || t('No crank or shift has been requested.', '尚未执行曲柄或移位请求。');
+  const panel = document.createElement('div');
+  panel.id = 'repeated-workbench';
+  panel.className = 'repeated-workbench';
+  panel.innerHTML = `
+    <h3>${t('Keep 314 set: turn, then change its place', '保持 314 设定：重复转动，再改变位值')}</h3>
+    <p class="model-note" id="repeated-boundary"><b>P/M</b> ${t('Guided exercise: seven turns → one shift → two turns. Button availability follows this lesson, not a historical interlock. These columns are an alignment map, not physical gear timing, a cutaway, or a model-specific machine reconstruction.', '引导式练习：七次曲柄 → 一次移位 → 两次曲柄。按钮是否可用由课程步骤决定，不是历史机器的互锁。下列各列是数位映射，不是齿轮时序、剖面或特定型号复原。')}</p>
+    <p>${t('One complete turn transfers the fixed setting once. The same arithmetic is shared by these two actuator representations.', '一次完整曲柄传入一次固定设定数；两种驱动机构表示共享同一算术过程。')}</p>
+    <div class="repeated-settings" aria-label="${t('Fixed setting columns', '固定设定列')}">
+      ${[...transfers].reverse().map(transfer => `<div data-setting-column="${transfer.settingColumn}" data-setting-digit="${transfer.digit}"><small>${placeName(transfer.settingColumn)}</small><b>${transfer.digit}</b><span>${t('effective steps / pins', '有效阶梯数 / 销齿数')}: ${transfer.digit}</span></div>`).join('')}
+    </div>
+    <div class="state-grid">
+      <div><small>${t('accumulator', '累加器')}</small><strong id="repeated-amount">${repeatedState.accumulator}</strong><span>${t('fixed setting: 314', '固定设定：314')}</span></div>
+      <div><small>${t('carriage alignment', '位架对齐')}</small><strong id="repeated-place">×${10 ** repeatedState.carriageOffset}</strong><span>${t('shifts', '移位')}: <b id="repeated-shifts">${repeatedState.shiftCount}</b></span></div>
+      <div><small>${t('completed whole turns', '已完成完整转数')}</small><strong id="repeated-turns">${repeatedState.completedCranks}</strong><span>${t('not the decimal multiplier 27', '不是十进制乘数 27')}</span></div>
+      <div><small>${t('turns at each place', '各数位的转数')}</small><strong id="repeated-place-turns">${repeatedState.placeTurns[0]} / ${repeatedState.placeTurns[1]}</strong><span>${t('units / tens', '个位 / 十位')}</span></div>
+    </div>
+    <h4>${t('Contribution map for one turn at this alignment', '当前对齐下的一次曲柄贡献')}</h4>
+    <ol class="repeated-transfer-map">${transfers.map(transfer => `<li data-target-column="${transfer.targetColumn}">${placeName(transfer.settingColumn)} ${transfer.digit} → ${placeName(transfer.targetColumn)}: <b>${transfer.contribution}</b></li>`).join('')}</ol>
+    <p id="repeated-contribution">${transfers.map(transfer => transfer.contribution).join(' + ')} = <b>${transfers.reduce((sum, transfer) => sum + transfer.contribution, 0)}</b></p>
+    <p>${t('These are contribution roles within a whole turn, not extra turns or a claimed sequence of physical contacts. Carry geometry and timing are not modeled in this lesson.', '这些是一次完整转动中的贡献角色，不是额外转数，也不是实体接触的先后顺序。本课程不模拟进位几何或时序。')}</p>
+    <div class="controls">
+      <button id="repeated-turn" ${next === 'TURN_CRANK' ? '' : 'disabled'}>${t('Turn once', '转动一次')}</button>
+      <button id="repeated-shift" ${next === 'SHIFT_CARRIAGE' ? '' : 'disabled'}>${t('Move carriage to tens', '位架移到十位')}</button>
+      <button id="repeated-reset" class="secondary">${t('Reset teaching exercise', '重置教学练习')}</button>
+    </div>
+    <p id="repeated-status" class="status">${status}</p>
+    <details open><summary>${t('Your complete-turn and shift record', '本次完整转动与移位记录')}</summary><pre id="repeated-log">${esc(eventLog)}</pre></details>
+    <details><summary>${t('Inspect P/M event snapshots', '检查 P/M 事件快照')}</summary><pre id="repeated-snapshots">${esc(JSON.stringify(repeatedEvents, null, 2))}</pre></details>
+    <p class="model-note">${t('The source map distinguishes setting-controlled effective engagement from operator-supplied repetition. Only the direct-multiplication control below selects multiplier digits 7 and 2. Neither cycle count is a historical speed or effort ranking.', '来源地图区分设定决定的有效接触与操作者提供的重复次数。只有下方直接乘法控制才选择乘数位 7 和 2。两种周期计数均不是历史速度或用力排名。')}</p>
+  `;
+  directWorkbench.before(panel);
+  let announcement = document.getElementById('repeated-announcement');
+  if (!announcement) {
+    announcement = document.createElement('p');
+    announcement.id = 'repeated-announcement';
+    announcement.className = 'repeated-announcement';
+    announcement.setAttribute('role', 'status');
+    announcement.setAttribute('aria-live', 'polite');
+    document.body.append(announcement);
+  }
+  announcement.textContent = status;
+  const perform = (action: RepeatedCrankAction) => {
+    // Disabled UI is not the guard: stale/synthetic actions cannot skip the guide.
+    if (nextRepeatedCrankAction(repeatedState) !== action) return;
+    const result = transitionRepeatedCrank(repeatedState, action);
+    repeatedState = result.state;
+    repeatedEvents.push(result.event);
+    multiplication();
+    const following = nextRepeatedCrankAction(repeatedState);
+    document.getElementById(following === 'TURN_CRANK' ? 'repeated-turn' : following === 'SHIFT_CARRIAGE' ? 'repeated-shift' : 'repeated-reset')?.focus({ preventScroll: true });
+  };
+  panel.querySelector('#repeated-turn')?.addEventListener('click', () => perform('TURN_CRANK'));
+  panel.querySelector('#repeated-shift')?.addEventListener('click', () => perform('SHIFT_CARRIAGE'));
+  panel.querySelector('#repeated-reset')?.addEventListener('click', () => {
+    repeatedState = createRepeatedCrankState();
+    repeatedEvents = [];
+    multiplication();
+    document.getElementById('repeated-turn')?.focus({ preventScroll: true });
   });
 }
 

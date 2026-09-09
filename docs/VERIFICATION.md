@@ -1,5 +1,35 @@
 # Verification record
 
+## 2026-09-08 — repeated-crank lesson refreshed onto current main
+
+Merged actual main `d14adc4469ad6fc7e0ec29a0b54e7cd89b1d6a67` into the repeated-crank candidate `b4cfceea6576689d6fc3a8af170f719b13beb831` in an isolated clone. Three conflicts were reproduced: this record, `STATUS.md`, and the import block in `src/main.ts`. Resolution keeps the repeated-crank imports alongside main's Controlled-Key workbench imports; neither mechanism is replaced. Both earlier verification sections remain separately recorded below. Main's setting–crank interlock hardening is also retained.
+
+- Node **22.23.2** `npm ci` — pass; committed lockfile unchanged.
+- Fresh `npm run typecheck` — pass.
+- Fresh `npm test` — **507 tests / 24 files**, all pass.
+- Fresh `npm run build` — pass, **39 modules**.
+- `git diff --check` — pass after conflict resolution.
+- Fresh headless Chromium against this production build — **4/4** cases pass, English/Chinese × 1440px/390px. Each executes every repeated-crank turn, confirms that the shift preserves 2198 and seven turns, finishes at 8478 after nine turns, and checks blocked out-of-guide actions, reset isolation, keyboard/focus and the stable live-status node.
+- The same four cases exercise both workbenches together: a Controlled-Key `099` interrupted stroke remains locked across multiplication-route visits; repeated-crank state advances independently; correction reaches `106` with two carries, lock release does not add again, replay disables new input, and return restores the current state. The direct path independently stays at 8478. No page errors, non-local requests or 390px horizontal overflow occurred.
+
+This is a main-refresh compatibility checkpoint, not a new historical/mechanical claim. The guided P/M boundary is unchanged. Browser checks are local DOM/keyboard evidence, not screen-reader speech certification. No remote CI, PR update, merge or Pages deployment is certified by this local record.
+
+## 2026-09-08 — fixed multiplicand settings and repeated crank work
+
+At exact main `ae41f5b0f25b5dd613f363bc85839676752fbd4a`, two tests using existing imports failed by assertion: the 314 comparison's active-pin settings were `[7, 2]` instead of `[4, 1, 3]`, and `steppedDrum(4, 0)` described four cranks instead of one actuation with four effective steps. Neither failure was an import, fixture or harness error.
+
+The new bounded P/M lesson generates complete-turn and independent carriage-shift events. Fixed settings yield seven 314 contributions, a shift that preserves 2198 and seven turns, then two 3140 contributions. The final amount is 8478 after nine turns and one shift. Setting-column identity is separate from carriage offset; existing direct-multiplication events and operator-work summary consumers remain intact. Tests cover every guide boundary, per-column contribution maps, snapshot isolation, request replay, setting/turn separation and downstream comparison values. No shared arithmetic/replay core, dependency or workflow changed.
+
+- Node **22.23.2** `npm ci` — pass from the unchanged lockfile.
+- `npm run typecheck` — pass.
+- `npm test` — **485 tests / 23 files** pass, including 21 new tests.
+- `npm run build` — pass, 38 modules.
+- `git diff --check` — pass.
+- Actual headless Chromium, English/Chinese × 1440px/390px — **4/4** cases pass: all nine individual turns, non-arithmetic shift, exact ten-event history, blocked synthetic out-of-guide clicks, reset, original direct cycles, two route/language round trips, Tab/Enter/Space and maintained focus. All four viewport/document widths match; no page errors or non-local requests.
+- One stable live-status node survives all rerenders/route trips in each case: same connected object, zero removals, final text matching visible feedback. This is DOM/keyboard evidence, not screen-reader speech certification.
+
+The guided controls explicitly are not historical interlocks; both actuator representations share an abstract contribution map, not physical contact order or carry geometry. Earlier unrelated successful CI runs do not certify this new candidate. No remote push, PR, merge or Pages deployment is claimed here.
+
 ## 2026-09-08 — operable Controlled-Key recovery workbench
 
 The `#/controls` integrity lesson previously played one fixed six-event recovery trace for units key 7. Visitors can now operate normal or interrupted strokes, try blocked input and early lock release, complete a known errant key exactly once, release the integrity lock, and continue with another place-value key. A thin exhibit adapter reuses the unchanged key-stroke-integrity and key-driven-accumulator mechanisms. Only successful actions enter the mechanism history; rejected attempts preserve its state, counters and events. Recorded-event replay is read-only until returning to the current action boundary.
