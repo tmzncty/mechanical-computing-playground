@@ -1,6 +1,6 @@
 # Current Status
 
-Last reconciled on 2026-09-08 while combining the fixed-multiplicand repeated-crank lesson with the operable Controlled-Key recovery workbench from current main.
+Last reconciled on 2026-09-14 (UTC+8) while adding the non-zero-remainder division contrast to the adopted repeated-crank and Controlled-Key lessons.
 
 This file is the **current-state authority** for the repository. `ROADMAP.md` describes where the project should go; `IMPLEMENTATION_PLAN.md` is still useful as a dependency/design specification, but many of its checkboxes predate later implementation and must not be treated as the live task ledger.
 
@@ -13,7 +13,7 @@ This file is the **current-state authority** for the repository. `ROADMAP.md` de
 - GitHub Actions CI and a Pages deployment workflow.
 - Deterministic state/event/replay primitives under `src/core/`.
 - Golden carry fixtures under `fixtures/carry/`.
-- The latest local code verification (`docs/VERIFICATION.md`, 2026-09-08 UTC+8) combines current main `d14adc4` with the repeated-crank lesson: Node 22.23.2 typecheck, 507 tests across 24 files, production build and diff check pass. Four actual English/Chinese × 1440px/390px browser cases cover all nine turns, the non-arithmetic shift, independent direct cycles, and coexistence with Controlled-Key lock recovery, carry inspection and read-only replay. These are fresh combined-tree checks, not the earlier branch-specific results or remote CI.
+- The latest local code verification (`docs/VERIFICATION.md`, 2026-09-14 UTC+8) adds the division contrast to main `dea32e0`: Windows Node 24.11.1 / npm 11.6.2 clean install, typecheck, all 520 tests across 25 files, production build (40 modules), and diff check pass. Four actual English/Chinese × desktop/narrow Chromium cases pass all 112 primary division-event advances plus keyboard/focus, stable status, scenario/reset and route/language persistence checks. The desktop-English case additionally passes bounded cross-exhibit isolation checks. These local checks do not certify remote Node 22 CI or deployment. Earlier repeated-crank/Controlled-Key verification remains separately recorded.
 
 Remote CI run `33437862103` passed for the previous operator-division checkpoint `7bebcea2d187f0ed2411de4098c846963df8b32a`. This status still does **not** substitute for CI on later commits.
 
@@ -55,7 +55,7 @@ The current browser shell contains non-empty routes or views for:
 - visible carry with the existing interactive P/M chain, Pascaline/Felt profiles, a Pascal/Belair-grounded one-direction complement panel, and a replayable generic complement-register v2 trace whose one forward-add action yields O(width) decimal-boundary summaries rather than one event per unit;
 - interactive finite differences plus a separately stepped calculation→persistent-output responsibility flow;
 - interactive multiplication comparison with visitor-requested single turns and explicit carriage shift for the fixed-314 repeated path, constant 3/1/4 actuator settings, event snapshots and trace-derived summaries; the existing direct path retains its separate event/cycle stepping. Guide-controlled buttons are explicitly not historical interlocks;
-- interactive operator-division procedure for `8478 ÷ 314` exposing the negative residual in `OVERSHOOT_PENDING` before detection makes add-back correction legal;
+- interactive operator-division contrast retaining `8478 ÷ 314` and adding `1000 ÷ 64`: the existing core exposes pending overshoot, detection, add-back and quotient correction, then the explicit result of 15 with remainder 40. Two selectable P/M traces distinguish the first residual 40 from the corrected 40, show current operation counts separately from inspection events, preserve route/language progress, and restore keyboard focus with a stable status node;
 - interactive controls area with setting–crank interlock, an operator-controlled incomplete-key-stroke workbench, and independently stepped result/revolution-register lifecycle scenarios, each preserving source/P/M boundaries; the key workbench accepts normal/interrupted strokes, permits rejected-input/early-release experiments, exposes nested place-value/carry events, and replays the visitor's actual accepted history without permitting operations on historical views;
 - interactive output-contract lesson exposing `+12, +8, SUBTOTAL, +5, TOTAL`, persistent record versus accumulator state, and source-separated register/listing/Difference Engine comparisons;
 - Curta;

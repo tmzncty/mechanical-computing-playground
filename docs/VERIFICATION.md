@@ -1,5 +1,25 @@
 # Verification record
 
+## 2026-09-14 — division with a non-zero remainder (UTC+8)
+
+Based independently on main `dea32e0750f1a9c5ac0fcef63c780a226dda9e47`, not on the separate Visible Carry keyboard PR #23. The existing operator-division core is unchanged. The default `8478 / 314` trace remains intact, while a two-input exhibit adapter exposes the already-supported `1000 / 64` case. Its final units-place sequence is residual `40 -> -24 -> detection -> 40 -> COMPLETE` and quotient `15 -> 16 -> 16 -> 15 -> 15`. The first 40 has not exhausted the model's place; the restored 40 has. Final output explicitly states quotient 15 and remainder 40, with `1000 = 64 × 15 + 40`.
+
+Actual local validation, Windows, Node **24.11.1** / npm **11.6.2**:
+
+- Clean `npm ci` — pass; package manifest and committed lockfile unchanged.
+- `npm run typecheck` — pass.
+- Full `npm test` — **520 tests / 25 files**, all pass. The 13 added tests bind both complete literal event-prefix sequences, pending/detected/corrected states, counts, action-bound replay, cursor/identity rejection, reset/selection isolation and independent projections.
+- `npm run build` — pass, **40 modules**, under the existing Project Pages base.
+- `git diff --check` — pass.
+- The final code gate was rerun after a review found stale accessible division text on other routes. Route dispatch now clears only the persistent division status when leaving the exhibit and reuses its node on return. The same full gates pass after that fix.
+- Actual headless Chromium against the final production build — **4/4** cases pass: English/Chinese at **1440 × 1000** and **390 × 844**. All **112 primary event advances** (14 per scenario per case) match the independent literal prefix oracle: residual, whole quotient, carriage place/contribution, phase, arithmetic/human counts, and applied log only.
+- Browser checks also pass native Enter/Space single activation, selected-button semantics, focus continuity including terminal Step-to-Reset, reset/selection isolation, locale and hash Back/Forward persistence, and stable polite/atomic status-node identity. Leaving division clears the node without removing it; returning restores the selected state.
+- Additional desktop-English coexistence checks preserve repeated-crank and direct progress, Controlled-Key lock/history and correction, and carry state across division visits. No console/page errors, non-local requests, or page-level horizontal overflow occurred in the four division cases. Production assets and six relevant source files were unchanged through browser execution. These are DOM/native-keyboard checks, not measured screen-reader speech.
+
+Both examples have 14 inspection events, but the original has 11 arithmetic / 12 model human operations and the new example has 10 / 11. Detection and completion do not add model human operations. Neither event clicks nor those model counts represent historical crank counts, duration, effort or efficiency. The original Thomas source panel is unchanged; the new stopping-rule explanation is P/M, not a universal historical procedure.
+
+This is local candidate evidence, not remote Node 22 CI, screen-reader speech certification, a future combined-tree test with #23, or a Pages deployment claim. Existing verification checkpoints follow unchanged.
+
 ## 2026-09-08 — repeated-crank lesson refreshed onto current main
 
 Merged actual main `d14adc4469ad6fc7e0ec29a0b54e7cd89b1d6a67` into the repeated-crank candidate `b4cfceea6576689d6fc3a8af170f719b13beb831` in an isolated clone. Three conflicts were reproduced: this record, `STATUS.md`, and the import block in `src/main.ts`. Resolution keeps the repeated-crank imports alongside main's Controlled-Key workbench imports; neither mechanism is replaced. Both earlier verification sections remain separately recorded below. Main's setting–crank interlock hardening is also retained.
