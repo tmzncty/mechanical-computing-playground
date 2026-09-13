@@ -279,6 +279,16 @@ Replay validates event order and derived arithmetic rather than trusting seriali
 
 The next research decision is whether a control-plate visualization would add explanatory value. It must not be drawn as Millionaire geometry until exact patent figures, object revision, and reconstruction choices are mapped.
 
+### 9.1 Fixed setting versus repeated turns — implementation update, 2026-09-08
+
+The repeated-crank lesson now exposes the relationship already described in §§1–4 without adding a new historical claim. The former comparison passed multiplier digits `7/2` to actuator descriptors and labelled seven active pins as the setting for `314 × 27`. Settings now describe the multiplicand's units/tens/hundreds digits `4/1/3` at a separate `settingColumn`; the initial carriage offset is zero for every setting column. One stepped-drum descriptor denotes one actuation, not `digit` separate crank turns.
+
+The visitor requests seven complete turns from the fixed 314 setting, producing `314, 628, 942, 1256, 1570, 1884, 2198`. A separate carriage action preserves the amount and seven-turn count while changing the alignment map from `4 + 10 + 300` to `40 + 100 + 3000`. Two further turns produce `5338, 8478`. The summaries derive nine turns and one shift from these same deterministic requests; the direct path still selects multiplier digits 7 and 2 in its two operation cycles.
+
+Claim **P/M**: `CRANK_COMPLETED`, contribution maps, event snapshots and guided button availability are a bounded teaching representation. They are not a claimed sequence of physical contacts, carry timing/geometry, historical locking behavior, operator speed or model-specific production protocol. A complete turn is not implemented as 314 separate `+1` crank requests or relabelled key strokes. The guide deliberately restricts this one exercise; it does not establish that a real machine would prevent a premature shift or additional turn. Reset is a teaching operation.
+
+The existing Smithsonian family/object, Odhner patent and Steiger page-level source boundaries remain unchanged. This is an implementation of an already mapped relationship, not a fresh facsimile inspection or a geometry extension.
+
 ## Project decision
 
 The strongest multiplication story is no longer “stepped drum versus pinwheel.” It is:

@@ -29,6 +29,31 @@
   opacity: 0.55;
 }
 
+.fixed-pin-settings, .repeated-settings {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fixed-pin-settings > span { display: grid; gap: 6px; }
+.fixed-pin-settings small { color: var(--gold); letter-spacing: 3px; }
+
+.repeated-workbench {
+  margin-top: 22px;
+  padding: 20px;
+  border: 1px solid #ad7f44;
+  border-radius: 12px;
+  background: #17130f;
+}
+
+.repeated-settings > div { flex: 1 1 85px; display: grid; gap: 6px; padding: 12px; border: 1px solid #ad7f44; border-radius: 8px; }
+.repeated-settings b { font-size: 1.8rem; color: var(--gold); }
+.repeated-transfer-map { padding-left: 24px; }
+.repeated-workbench button:disabled { cursor: not-allowed; opacity: 0.5; }
+.repeated-workbench button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.repeated-workbench pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.repeated-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
 @media (max-width: 800px) {
   .mechanism-lanes {
     grid-template-columns: 1fr 1fr;
@@ -40,7 +65,7 @@
     grid-template-columns: 1fr;
   }
 
-  .direct-workbench {
+  .direct-workbench, .repeated-workbench {
     padding: 14px;
   }
 }

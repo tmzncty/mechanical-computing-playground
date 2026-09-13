@@ -1,5 +1,23 @@
 # Verification record
 
+## 2026-09-13 — adopted repeated-crank lesson with Space ownership
+
+Integrating main `dea32e0750f1a9c5ac0fcef63c780a226dda9e47` (including adopted repeated-crank PR #22) into Space-ownership PR #23 at `56a84f32abc222acb36fdec7d299d76948b0f100` produces only documentation conflicts in `STATUS.md` and this record. The automatic code merge retains main's complete multiplication/Controlled-Key behavior and adds only the existing Space-owner import/guard, helper and tests relative to main. No workflow, dependency, core arithmetic or historical claim changes.
+
+Fresh local verification of this combination:
+
+- Node `22.23.2`, npm `10.9.8`: clean `npm ci`, typecheck, all **525 tests across 25 files**, production build (**40 modules**) and `git diff --check` pass. Installation and all verification stages leave the lockfile and all 167 tracked files unchanged; the later changes to this verification prose and STATUS are documentation-only.
+- Chromium `148.0.7778.96`, newly built production output: **86/86** English/Chinese Space-ownership cases pass. **72 use actual keyboard/mouse input; 14 descendant/IME probes are explicitly synthetic.** Native controls, editable/ARIA/focusable owners, open-shadow paths, cancellation/modifiers, false-marker casing and route isolation retain the tested behavior.
+- **4/4 Carry/Controlled-Key workflows** (English/Chinese × 1440px/390px) pass, each with **31 inspected states and 25 native-Space actions**. Keydown leaves state unchanged; keyup yields exactly one trusted native click. The checks include `099 → ERROR_LOCKED → 106/CORRECTED_LOCKED → 106/IDLE → 126`, rejected operations, read-only replay, independent resets, route/language/history trips, focus fallback and the same connected polite status node. Background repeat still advances once per trusted keydown.
+- **4/4 repeated-crank integration workflows** at the same languages/widths pass, each with **23 repeated-course observations**. Fixed `314` settings yield seven units turns, a shift preserving `2198` and seven turns, then two tens turns to `8478`; nine completed turns and ten ordered events remain distinct. Synthetic out-of-guide click probes remain labeled as such. Direct multiplication independently reaches `8478`, and resetting repeated multiplication does not clear it.
+- The repeated workflows also preserve a Controlled-Key error lock across multiplication visits, commit the correction exactly once to `106` with two carries, and retain the live state after replay. A final three-way round trip uses native Space on Carry's complete-addition button: unchanged state/focused button on keydown, then exactly one trusted click and `0100` at event nine on keyup. Returning retains repeated `628`, direct `8478`, and Controlled-Key `106/IDLE` with counts `1 / 4`.
+- Existing repeated-course focus fallback and the same connected live-status node survive the checked rerenders; no node removals, page errors, non-local browser requests or horizontal document overflow occur in the completed four-case workflows. These checks observe browser DOM/keyboard behavior, not screen-reader speech or real operating-system IME behavior. Carry post-render focus restoration is not added by this change.
+- All three completed browser suites bind the same production assets: JavaScript `index-BDpSDEbK.js`, SHA-256 `d4cac6a2af6e82c73316e1025bb2ae6bdfa4f8bbf49f66946bdc2162047f7c87`; CSS `index-CF-xnIqw.css`, SHA-256 `4b563797a871cee67a29ba029d897bbb08e2809f888f818f31e3000f2ca2c6a5`.
+
+The first repeated-workflow run stopped at an overescaped numeric regex in the newly added external Carry-state probe, before that probe's behavior assertions. Its failed receipt is retained separately. Correcting only the external harness and rerunning that suite produced the four passing results above; no product code or production asset was changed to obtain the pass.
+
+The historical checkpoints below retain all 51 original sections with their original scope, including which then-unmerged branches they did not contain. The new results certify the local combination only, not remote CI, maintainer merge or Pages deployment.
+
 ## 2026-09-08 — main d14 integration with Visible Carry Space ownership
 
 The exact published Space-ownership head `8b29c9df63ade8003b4c0ed813d68a0d2635cd21` was locally integrated with main `d14adc4469ad6fc7e0ec29a0b54e7cd89b1d6a67`, which contains the accepted action-bound interlock replay and Controlled-Key workbench. An ordinary main-into-PR merge required only two `STATUS.md` conflict blocks and one verification-heading conflict block to be reconciled. The automatic source merge is unchanged; repeated-crank PR #22 is not a dependency or part of this integration.
@@ -43,6 +61,36 @@ The page now claims only an unmodified, uncanceled, non-composing Space whose co
 - The same 78-case browser regression was run first on the unchanged baseline: 58 actual behavior failures and 20 positive controls. The failures record wrong state, swallowed native activation/editing, or improper shortcut cancellation, not an absent new helper or failed import. Every case reloads and checks its initial state. No page errors or non-local requests occurred before or after the fix.
 
 No workflow, dependency, carry core or deployment configuration changed. These are local candidate checks, not remote CI, merge, deployment or screen-reader speech certification. The unmerged interlock, Controlled-Key and repeated-crank PRs are not included in this standalone candidate.
+
+## 2026-09-08 — repeated-crank lesson refreshed onto current main
+
+Merged actual main `d14adc4469ad6fc7e0ec29a0b54e7cd89b1d6a67` into the repeated-crank candidate `b4cfceea6576689d6fc3a8af170f719b13beb831` in an isolated clone. Three conflicts were reproduced: this record, `STATUS.md`, and the import block in `src/main.ts`. Resolution keeps the repeated-crank imports alongside main's Controlled-Key workbench imports; neither mechanism is replaced. Both earlier verification sections remain separately recorded below. Main's setting–crank interlock hardening is also retained.
+
+- Node **22.23.2** `npm ci` — pass; committed lockfile unchanged.
+- Fresh `npm run typecheck` — pass.
+- Fresh `npm test` — **507 tests / 24 files**, all pass.
+- Fresh `npm run build` — pass, **39 modules**.
+- `git diff --check` — pass after conflict resolution.
+- Fresh headless Chromium against this production build — **4/4** cases pass, English/Chinese × 1440px/390px. Each executes every repeated-crank turn, confirms that the shift preserves 2198 and seven turns, finishes at 8478 after nine turns, and checks blocked out-of-guide actions, reset isolation, keyboard/focus and the stable live-status node.
+- The same four cases exercise both workbenches together: a Controlled-Key `099` interrupted stroke remains locked across multiplication-route visits; repeated-crank state advances independently; correction reaches `106` with two carries, lock release does not add again, replay disables new input, and return restores the current state. The direct path independently stays at 8478. No page errors, non-local requests or 390px horizontal overflow occurred.
+
+This is a main-refresh compatibility checkpoint, not a new historical/mechanical claim. The guided P/M boundary is unchanged. Browser checks are local DOM/keyboard evidence, not screen-reader speech certification. No remote CI, PR update, merge or Pages deployment is certified by this local record.
+
+## 2026-09-08 — fixed multiplicand settings and repeated crank work
+
+At exact main `ae41f5b0f25b5dd613f363bc85839676752fbd4a`, two tests using existing imports failed by assertion: the 314 comparison's active-pin settings were `[7, 2]` instead of `[4, 1, 3]`, and `steppedDrum(4, 0)` described four cranks instead of one actuation with four effective steps. Neither failure was an import, fixture or harness error.
+
+The new bounded P/M lesson generates complete-turn and independent carriage-shift events. Fixed settings yield seven 314 contributions, a shift that preserves 2198 and seven turns, then two 3140 contributions. The final amount is 8478 after nine turns and one shift. Setting-column identity is separate from carriage offset; existing direct-multiplication events and operator-work summary consumers remain intact. Tests cover every guide boundary, per-column contribution maps, snapshot isolation, request replay, setting/turn separation and downstream comparison values. No shared arithmetic/replay core, dependency or workflow changed.
+
+- Node **22.23.2** `npm ci` — pass from the unchanged lockfile.
+- `npm run typecheck` — pass.
+- `npm test` — **485 tests / 23 files** pass, including 21 new tests.
+- `npm run build` — pass, 38 modules.
+- `git diff --check` — pass.
+- Actual headless Chromium, English/Chinese × 1440px/390px — **4/4** cases pass: all nine individual turns, non-arithmetic shift, exact ten-event history, blocked synthetic out-of-guide clicks, reset, original direct cycles, two route/language round trips, Tab/Enter/Space and maintained focus. All four viewport/document widths match; no page errors or non-local requests.
+- One stable live-status node survives all rerenders/route trips in each case: same connected object, zero removals, final text matching visible feedback. This is DOM/keyboard evidence, not screen-reader speech certification.
+
+The guided controls explicitly are not historical interlocks; both actuator representations share an abstract contribution map, not physical contact order or carry geometry. Earlier unrelated successful CI runs do not certify this new candidate. No remote push, PR, merge or Pages deployment is claimed here.
 
 ## 2026-09-08 — operable Controlled-Key recovery workbench
 
