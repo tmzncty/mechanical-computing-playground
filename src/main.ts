@@ -7,7 +7,8 @@ import { type IntegrityAction, type IntegrityEvent } from './mechanisms/key-stro
 import { applyWorkbenchAction, createKeyStrokeWorkbench, displayedWorkbenchState, returnToCurrentWorkbench, startWorkbenchReplay, stepWorkbenchReplay, type WorkbenchAction } from './exhibits/key-stroke-workbench';
 import { traceComplementSubtraction } from './mechanisms/complement-register';
 import { reduceDirectMultiplierEvent, type DirectMultiplierEvent } from './mechanisms/direct-multiplier';
-import { quotientValue, reduceDivisionEvent, traceOperatorDivision, type DivisionEvent } from './mechanisms/operator-division';
+import { type DivisionEvent } from './mechanisms/operator-division';
+import { DIVISION_SCENARIOS, createDivisionLesson, divisionLessonFrame, resetDivisionLesson, stepDivisionLesson } from './exhibits/operator-division-lessons';
 import { createSettingCrankInterlock, transitionInterlock, type InterlockEvent, type SettingCrankInterlockState } from './mechanisms/setting-crank-interlock';
 import { createRegisterLifecycle, reduceRegisterLifecycleEvent, traceRegisterLifecycle, type RegisterLifecycleEvent } from './mechanisms/register-lifecycle';
 import { createAnalyticalFlowTrace, stateAtAnalyticalEvent, type AnalyticalFlowEvent } from './exhibits/analytical-engine-flow';
@@ -47,8 +48,7 @@ let differenceKeyboardBound = false;
 let directEventIndex = 0;
 let repeatedState = createRepeatedCrankState();
 let repeatedEvents: RepeatedCrankEvent[] = [];
-const divisionTrace = traceOperatorDivision(8478, 314, 1);
-let divisionEventIndex = 0;
+let divisionLesson = createDivisionLesson();
 let controlState: SettingCrankInterlockState = createSettingCrankInterlock(314);
 let controlEvents: InterlockEvent[] = [];
 let controlMessage = '';
@@ -320,28 +320,104 @@ function renderRepeatedCrankWorkbench(directWorkbench: HTMLElement) {
 }
 
 function division() {
-  const events = divisionTrace.events;
-  const state = events.slice(0, divisionEventIndex).reduce(reduceDivisionEvent, structuredClone(divisionTrace.initialState));
+  const focusedId = document.activeElement?.id;
+  const { scenario, trace, events, state, quotient, lastEvent, counts } = divisionLessonFrame(divisionLesson);
+  const complete = state.phase === 'COMPLETE';
   const name = (event: DivisionEvent) => {
     if (event.type === 'SUBTRACT_ONCE') return t(`Subtract ${event.contribution}: ${event.residualBefore} → ${event.residualAfter}`, `减去 ${event.contribution}：${event.residualBefore} → ${event.residualAfter}`);
     if (event.type === 'OVERSHOOT_DETECTED') return t(`Overshoot noticed at ${event.residual}`, `发现超越零点：${event.residual}`);
-    if (event.type === 'CORRECT_ADD_BACK') return t(`Add back ${event.contribution}; undo quotient step`, `加回 ${event.contribution}；撤销一次商计数`);
+    if (event.type === 'CORRECT_ADD_BACK') return t(`Add back ${event.contribution}: ${event.residualBefore} → ${event.residualAfter}; undo the quotient digit ${event.quotientBefore} → ${event.quotientAfter}`, `加回 ${event.contribution}：${event.residualBefore} → ${event.residualAfter}；撤销当前商数位的一次计数 ${event.quotientBefore} → ${event.quotientAfter}`);
     if (event.type === 'SHIFT_CARRIAGE_DOWN') return t(`Shift decimal place ${event.offsetBefore} → ${event.offsetAfter}`, `位架数位 ${event.offsetBefore} → ${event.offsetAfter}`);
     return t(`Complete: quotient ${event.quotient}, remainder ${event.remainder}`, `完成：商 ${event.quotient}，余数 ${event.remainder}`);
   };
   const phaseDetail = state.phase === 'OVERSHOOT_PENDING'
-    ? t('negative residual; detection is the next event', '余数已为负；下一事件才确认越界')
+    ? t('The residual is negative and the quotient is tentative. Detection is the next event; correction is not yet legal.', '剩余量已为负，商仍是试探计数。下一事件才检测越界；此刻尚不能加回纠正。')
     : state.phase === 'CORRECTION_REQUIRED'
-      ? t('operator must add back before shifting', '必须先加回纠正，才能移位')
-      : t('human actions: ', '人工动作：') + state.humanOperationCount;
-  const log = events.slice(0, divisionEventIndex).map((event) => `${event.sequence.toString().padStart(2, '0')} · ${name(event)}`).join('\n') || t('No operator action yet.', '还没有操作动作。');
+      ? t('Add back the current subtraction and undo its quotient step before moving on.', '先加回当前减数、撤销一次商计数，再继续。')
+      : complete
+        ? t('The quotient is complete. A remainder smaller than the divisor need not be zero.', '商已完成。余数小于除数，并不一定为零。')
+        : state.placeExhausted
+          ? state.carriageOffset > 0
+            ? t('This place is finished. Next, shift to the lower decimal place.', '本数位已完成。下一步移到更低数位。')
+            : t('The units place is finished. The next event records the quotient and remainder.', '个位已完成。下一事件记录商与余数。')
+          : state.residual < state.currentContribution
+            ? t('Less remains than the next subtraction. This P/M trial-and-correction procedure still attempts it, detects the overshoot, then adds back; it does not stop early.', '剩余量已小于下一次减数。本 P/M 试减纠正流程仍会尝试、检测越界、再加回；不会提前停止。')
+            : t(`Next, subtract ${state.currentContribution} and advance the quotient count at this place.`, `下一步减去 ${state.currentContribution}，并增加本数位的商计数。`);
+  const log = events.map(event => `${event.sequence.toString().padStart(2, '0')} · ${name(event)}`).join('\n') || t('No operator action yet.', '还没有操作动作。');
+  const status = t(
+    `${scenario.dividend} ÷ ${scenario.divisor} · Event ${divisionLesson.eventIndex} / ${trace.events.length}. ${lastEvent ? name(lastEvent) : 'Ready.'} Residual ${state.residual}; quotient count ${quotient}. ${state.phase}. ${phaseDetail}`,
+    `${scenario.dividend} ÷ ${scenario.divisor} · 事件 ${divisionLesson.eventIndex} / ${trace.events.length}。${lastEvent ? name(lastEvent) : '准备就绪。'} 剩余量 ${state.residual}；商计数 ${quotient}。${state.phase}。${phaseDetail}`,
+  );
   shell(
     { en: 'How does an operator build a quotient?', zh: '操作者怎样一步步做出商？' },
     { en: 'Division emerges from repeated subtraction, carriage place, overshoot, correction, and counting.', zh: '商来自重复减法、位架位置、越界判断、纠正与计数。' },
-    `${lesson({ en: 'Divide 8478 by 314 without a ÷ instruction.', zh: '不用“÷”指令计算 8478 ÷ 314。' }, { en: 'Step until the residual passes below zero, then watch the correction.', zh: '单步执行到余数越过零点，再观察纠正。' }, { en: 'The operator decides when to correct and shift; the counter records repeated operations by place.', zh: '操作者决定何时纠正和移位；计数器按数位记录重复操作。' })}<section><div class="structure-callout">${evidenceBadge('TEACHING', locale)} ${t('P/M generic operator procedure—not Thomas, Burkhardt, or Curta geometry.', 'P/M 通用操作者流程——不是 Thomas、Burkhardt 或 Curta 的几何复原。')}</div><div class="equation"><span>8478 ÷ 314</span><strong>${state.phase === 'COMPLETE' ? `= ${quotientValue(state)}` : '→ ?'}</strong></div><div class="state-grid"><div><small>${t('residual / result register', '余数 / 结果寄存器')}</small><strong>${state.residual}</strong></div><div><small>${t('divisor', '除数')}</small><strong>${state.divisor}</strong></div><div><small>${t('carriage place', '位架数位')}</small><strong>×${10 ** state.carriageOffset}</strong><span>${t('current subtraction: ', '当前减数：')}${state.currentContribution}</span></div><div><small>${t('quotient by place', '分位商计数')}</small><strong>${[...state.quotientDigits].reverse().join('')}</strong><span>${t('tens / units revolution counts', '十位 / 个位转数计数')}</span></div><div><small>${t('phase', '阶段')}</small><strong>${state.phase}</strong><span>${phaseDetail}</span></div></div><div class="controls"><button id="division-step" ${divisionEventIndex >= events.length ? 'disabled' : ''}>${t('Do one event', '执行一个事件')}</button><button class="secondary" id="division-reset">${t('Reset', '重置')}</button></div><div class="progress"><i style="width:${divisionEventIndex / events.length * 100}%"></i></div><p class="status" aria-live="polite">${t('Event', '事件')} ${divisionEventIndex} / ${events.length}</p><details open><summary>${t('Operator procedure log', '操作者流程记录')}</summary><pre>${esc(log)}</pre></details><div class="structure-callout"><b>${t('Thomas source-backed controls vs this P/M trace', 'Thomas 来源支持的控制与本站 P/M 轨迹')}</b><ul><li>${t('H/E1 · 1868 exposed opening (IIIF NMAH-AHB2018q019415): A sets digits, B selects operation, C shows results, D shows multiplier/quotient, N is the crank, O/P independently zero D/C and also lift/slide carriage M.', 'H/E1 · 1868 年公开展开页（IIIF NMAH-AHB2018q019415）：A 设数，B 选运算，C 显示结果，D 显示乘数/商，N 为曲柄，O/P 分别清零 D/C，并可抬起/滑动位架 M。')}</li><li>${t('H/E1 · identified objects: the 1867 MA.327900 catalog gives 7 carriage positions and opposite revolution-register directions for ADD/MULT versus SUB/DIV; ca.1873 MA.335215 has different 10-lever, 11/20-window capacities and independent clear knobs.', 'H/E1 · 已识别实物：1867 年 MA.327900 目录记载 7 个位架位置及加乘/减除下相反的转数寄存器方向；约 1873 年 MA.335215 则有不同的 10 杆、11/20 窗容量与独立清零钮。')}</li><li>${t('Not established: the sole exposed pamphlet opening contains no multiplication/division sequence, repeated turns, shift order, overshoot, add-back, remainder termination, or counter direction. The early ca.1820 survivor is ribbon-operated and has no revolution register.', '未确认：唯一公开的说明书展开页没有乘除步骤、重复转动、移位顺序、超越、加回、余数终止或计数器方向。约 1820 年早期留存机由拉带驱动，且没有转数寄存器。')}</li></ul></div><p class="model-note">${t('P/M repository trace: no hidden quotient event exists. Ten subtraction attempts, one detected tens-place overshoot, one add-back correction, and a carriage shift produce 27. These phase names and event order are not Thomas terminology, timing, bell, crank direction, counter sign, or add-back linkage.', 'P/M 本站轨迹：不存在隐藏的“直接得商”事件。十次减法尝试、一次十位越界、一次加回纠正和一次位架移位共同产生 27。这些阶段名和事件顺序不是 Thomas 术语、时序、铃、曲柄方向、计数符号或加回连杆。')}</p></section>`
+    `${lesson(
+      { en: `Divide ${scenario.dividend} items into groups of ${scenario.divisor} without a ÷ instruction.`, zh: `不用“÷”指令，把 ${scenario.dividend} 件库存按每组 ${scenario.divisor} 件分配。` },
+      { en: 'Compare an exact division with a division that leaves stock over. Step through the last subtraction and correction.', zh: '对比恰好分完与仍有剩余的情况。逐步观察最后一次减法与纠正。' },
+      { en: 'The counter records attempts by place. Correction restores both the residual and the tentative quotient; completion does not always mean zero.', zh: '计数器按数位记录尝试。纠正既恢复剩余量，也撤销试探的商计数；完成不一定意味着归零。' },
+    )}
+    <section id="division-workbench">
+      <div class="structure-callout">${evidenceBadge('TEACHING', locale)} ${t('P/M generic operator procedure—not Thomas, Burkhardt, or Curta geometry.', 'P/M 通用操作者流程——不是 Thomas、Burkhardt 或 Curta 的几何复原。')}</div>
+      <div class="controls" role="group" aria-label="${t('Division scenario', '除法场景')}" aria-describedby="division-scenario-help">
+        ${DIVISION_SCENARIOS.map(candidate => `<button type="button" class="secondary" id="division-${candidate.id}" aria-pressed="${candidate.id === divisionLesson.scenarioId}">${candidate.dividend} ÷ ${candidate.divisor} · ${candidate.id === 'exact' ? t('Exact', '整除') : t('Remainder', '有余数')}</button>`).join('')}
+      </div>
+      <p id="division-scenario-help">${t('Choosing a scenario restarts it. Reset restarts the currently selected scenario.', '选择场景会从头开始。重置会重新开始当前选中的场景。')}</p>
+      <div class="equation"><span>${scenario.dividend} ÷ ${scenario.divisor}</span></div>
+      <p id="division-result" class="status">${complete
+        ? t(`Complete: quotient ${quotient}, remainder ${state.residual}.`, `完成：商 ${quotient}，余数 ${state.residual}。`)
+        : t('In progress: the quotient count is tentative, not a final answer.', '进行中：商计数仍是试探值，并非最终结果。')}</p>
+      ${complete ? `<p id="division-reconciliation" class="status">${scenario.dividend} = ${scenario.divisor} × ${quotient} + ${state.residual}; 0 ≤ ${state.residual} &lt; ${scenario.divisor}</p>` : ''}
+      <div class="state-grid">
+        <div><small>${t('residual / result register', '剩余量 / 结果寄存器')}</small><strong id="division-residual">${state.residual}</strong></div>
+        <div><small>${t('divisor', '除数')}</small><strong>${state.divisor}</strong></div>
+        <div><small>${t('carriage place', '位架数位')}</small><strong id="division-place">×${10 ** state.carriageOffset}</strong><span>${t('current subtraction: ', '当前减数：')}<b id="division-contribution">${state.currentContribution}</b></span></div>
+        <div><small>${t('quotient count', '商计数')}</small><strong id="division-quotient">${quotient}</strong><span id="division-digits">${[...state.quotientDigits].reverse().join(' / ')} · ${t('tens / units', '十位 / 个位')}</span></div>
+        <div><small>${t('phase', '阶段')}</small><strong id="division-phase">${state.phase}</strong><span id="division-phase-detail">${phaseDetail}</span></div>
+        <div><small>${t('arithmetic operations', '算术操作次数')}</small><strong id="division-operations">${state.operationCount}</strong><span>${t('subtractions + add-backs', '减法 + 加回')}</span></div>
+        <div><small>${t('model human operations', '模型人工操作次数')}</small><strong id="division-human-operations">${state.humanOperationCount}</strong><span>${t('arithmetic + carriage shifts', '算术操作 + 位架移位')}</span></div>
+      </div>
+      <div class="controls">
+        <button type="button" id="division-step" ${complete ? 'disabled' : ''}>${t('Do one event', '执行一个事件')}</button>
+        <button type="button" class="secondary" id="division-reset">${t('Reset', '重置')}</button>
+      </div>
+      <div class="progress"><i style="width:${divisionLesson.eventIndex / trace.events.length * 100}%"></i></div>
+      <p id="division-status" class="status">${status}</p>
+      <p id="division-counts">${t(`So far: ${counts.subtractions} subtraction attempts, ${counts.detections} detections, ${counts.corrections} add-backs, ${counts.shifts} carriage shifts.`, `目前：${counts.subtractions} 次减法尝试、${counts.detections} 次检测、${counts.corrections} 次加回、${counts.shifts} 次位架移位。`)}</p>
+      <details open><summary>${t('Operator procedure log', '操作者流程记录')}</summary><pre id="division-log">${esc(log)}</pre></details>
+      <div class="structure-callout"><b>${t('Thomas source-backed controls vs this P/M trace', 'Thomas 来源支持的控制与本站 P/M 轨迹')}</b><ul><li>${t('H/E1 · 1868 exposed opening (IIIF NMAH-AHB2018q019415): A sets digits, B selects operation, C shows results, D shows multiplier/quotient, N is the crank, O/P independently zero D/C and also lift/slide carriage M.', 'H/E1 · 1868 年公开展开页（IIIF NMAH-AHB2018q019415）：A 设数，B 选运算，C 显示结果，D 显示乘数/商，N 为曲柄，O/P 分别清零 D/C，并可抬起/滑动位架 M。')}</li><li>${t('H/E1 · identified objects: the 1867 MA.327900 catalog gives 7 carriage positions and opposite revolution-register directions for ADD/MULT versus SUB/DIV; ca.1873 MA.335215 has different 10-lever, 11/20-window capacities and independent clear knobs.', 'H/E1 · 已识别实物：1867 年 MA.327900 目录记载 7 个位架位置及加乘/减除下相反的转数寄存器方向；约 1873 年 MA.335215 则有不同的 10 杆、11/20 窗容量与独立清零钮。')}</li><li>${t('Not established: the sole exposed pamphlet opening contains no multiplication/division sequence, repeated turns, shift order, overshoot, add-back, remainder termination, or counter direction. The early ca.1820 survivor is ribbon-operated and has no revolution register.', '未确认：唯一公开的说明书展开页没有乘除步骤、重复转动、移位顺序、超越、加回、余数终止或计数器方向。约 1820 年早期留存机由拉带驱动，且没有转数寄存器。')}</li></ul></div>
+      <p class="model-note">${t('P/M repository trace: the quotient and remainder come from the event state, not a hidden divide-result instruction. Detection and completion are separate inspection events, not extra model human operations; website clicks are not historical crank, time or effort counts. These phases and the trial-and-correction stopping rule are teaching choices, not universal Thomas, Burkhardt or Curta terminology, timing, direction, bell or linkage.', 'P/M 本站轨迹：商与余数来自事件状态，不是隐藏的直接除法指令。检测与完成是独立观察事件，不额外增加模型人工操作次数；网页点击次数不是历史曲柄、时间或用力计数。这些阶段与试减纠正的停止规则是教学选择，不是 Thomas、Burkhardt 或 Curta 通用的术语、时序、方向、铃或连杆。')}</p>
+    </section>`,
   );
-  document.querySelector('#division-step')?.addEventListener('click', () => { divisionEventIndex = Math.min(divisionEventIndex + 1, events.length); division(); });
-  document.querySelector('#division-reset')?.addEventListener('click', () => { divisionEventIndex = 0; division(); });
+  // Keep the live node outside the shell's replaced subtree. Reuse the existing
+  // visually-hidden announcement style; the same full status remains visible.
+  let announcement = document.getElementById('division-announcement');
+  if (!announcement) {
+    announcement = document.createElement('p');
+    announcement.id = 'division-announcement';
+    announcement.className = 'repeated-announcement';
+    announcement.setAttribute('role', 'status');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.setAttribute('aria-atomic', 'true');
+    document.body.append(announcement);
+  }
+  announcement.textContent = status;
+  for (const candidate of DIVISION_SCENARIOS) {
+    document.getElementById(`division-${candidate.id}`)?.addEventListener('click', () => {
+      divisionLesson = createDivisionLesson(candidate.id);
+      division();
+    });
+  }
+  document.getElementById('division-step')?.addEventListener('click', () => {
+    divisionLesson = stepDivisionLesson(divisionLesson);
+    division();
+  });
+  document.getElementById('division-reset')?.addEventListener('click', () => {
+    divisionLesson = resetDivisionLesson(divisionLesson);
+    division();
+  });
+  if (focusedId?.startsWith('division-') || focusedId === 'language-toggle') {
+    document.getElementById(focusedId === 'division-step' && complete ? 'division-reset' : focusedId)?.focus({ preventScroll: true });
+  }
 }
 
 function integrityPlace(column: number): string {
@@ -716,6 +792,8 @@ function about() {
 
 function render() {
   const path = location.hash.slice(1) || '/';
+  const divisionAnnouncement = document.getElementById('division-announcement');
+  if (path !== '/division' && divisionAnnouncement) divisionAnnouncement.textContent = '';
   if (path === '/visible-carry') visibleCarry();
   else if (path === '/finite-difference') finiteDifference();
   else if (path === '/multiplication') multiplication();
