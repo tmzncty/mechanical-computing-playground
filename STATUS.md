@@ -1,6 +1,6 @@
 # Current Status
 
-Last reconciled on 2026-09-08 while combining the fixed-multiplicand repeated-crank lesson with the operable Controlled-Key recovery workbench from current main.
+Last reconciled on 2026-09-13 while integrating Visible Carry's focused-control Space ownership with the adopted fixed-multiplicand repeated-crank lesson and operable Controlled-Key recovery workbench.
 
 This file is the **current-state authority** for the repository. `ROADMAP.md` describes where the project should go; `IMPLEMENTATION_PLAN.md` is still useful as a dependency/design specification, but many of its checkboxes predate later implementation and must not be treated as the live task ledger.
 
@@ -13,7 +13,7 @@ This file is the **current-state authority** for the repository. `ROADMAP.md` de
 - GitHub Actions CI and a Pages deployment workflow.
 - Deterministic state/event/replay primitives under `src/core/`.
 - Golden carry fixtures under `fixtures/carry/`.
-- The latest local code verification (`docs/VERIFICATION.md`, 2026-09-08 UTC+8) combines current main `d14adc4` with the repeated-crank lesson: Node 22.23.2 typecheck, 507 tests across 24 files, production build and diff check pass. Four actual English/Chinese × 1440px/390px browser cases cover all nine turns, the non-arithmetic shift, independent direct cycles, and coexistence with Controlled-Key lock recovery, carry inspection and read-only replay. These are fresh combined-tree checks, not the earlier branch-specific results or remote CI.
+- Fresh 2026-09-13 combined-tree verification on Node 22.23.2: clean install, typecheck, all 525 tests across 25 files, and production build (40 modules) pass. Chromium passes 86 Space-ownership cases (72 actual-input / 14 synthetic), four Carry/Controlled-Key workflows, and four repeated-crank/direct/Controlled-Key/Carry workflows in English/Chinese at 1440px/390px. Exact local scope, production-asset identity and separately scoped historical checkpoints are retained in `docs/VERIFICATION.md`; these local checks do not certify deployment or later remote CI.
 
 Remote CI run `33437862103` passed for the previous operator-division checkpoint `7bebcea2d187f0ed2411de4098c846963df8b32a`. This status still does **not** substitute for CI on later commits.
 
@@ -53,6 +53,7 @@ These are not all historical geometric reconstructions. Several intentionally mo
 The current browser shell contains non-empty routes or views for:
 
 - visible carry with the existing interactive P/M chain, Pascaline/Felt profiles, a Pascal/Belair-grounded one-direction complement panel, and a replayable generic complement-register v2 trace whose one forward-add action yields O(width) decimal-boundary summaries rather than one event per unit;
+- Visible Carry's background Space shortcut leaves native/custom interactive controls, editable contexts, already-canceled events, modifiers and IME composition with their own keyboard owner; Space activates the complete/reset/language buttons without a competing carry step;
 - interactive finite differences plus a separately stepped calculation→persistent-output responsibility flow;
 - interactive multiplication comparison with visitor-requested single turns and explicit carriage shift for the fixed-314 repeated path, constant 3/1/4 actuator settings, event snapshots and trace-derived summaries; the existing direct path retains its separate event/cycle stepping. Guide-controlled buttons are explicitly not historical interlocks;
 - interactive operator-division procedure for `8478 ÷ 314` exposing the negative residual in `OVERSHOOT_PENDING` before detection makes add-back correction legal;

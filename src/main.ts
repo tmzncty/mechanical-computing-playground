@@ -25,6 +25,7 @@ import { evaluate, type StageAState } from './backprop/core/stage-a';
 import { createPhaseMachine, runPhaseCycle, stepPhase, STAGE_A_PHASES, type PhaseMachineState } from './backprop/core/phase-machine';
 import { mapStageA } from './backprop/mechanical-mapping';
 import { evidenceBadge, evidencePanel } from './ui/evidence';
+import { pageOwnsSpace } from './ui/keyboard';
 import './style.css';
 import './direct-multiplier.css';
 
@@ -735,7 +736,7 @@ function render() {
 
 addEventListener('hashchange', render);
 addEventListener('keydown', (event) => {
-  if (event.key === ' ' && location.hash === '#/visible-carry') {
+  if (location.hash === '#/visible-carry' && pageOwnsSpace(event)) {
     event.preventDefault();
     carryIndex = Math.min(carryIndex + 1, carryTrace.events.length);
     visibleCarry();

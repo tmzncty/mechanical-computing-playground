@@ -1,5 +1,67 @@
 # Verification record
 
+## 2026-09-13 — adopted repeated-crank lesson with Space ownership
+
+Integrating main `dea32e0750f1a9c5ac0fcef63c780a226dda9e47` (including adopted repeated-crank PR #22) into Space-ownership PR #23 at `56a84f32abc222acb36fdec7d299d76948b0f100` produces only documentation conflicts in `STATUS.md` and this record. The automatic code merge retains main's complete multiplication/Controlled-Key behavior and adds only the existing Space-owner import/guard, helper and tests relative to main. No workflow, dependency, core arithmetic or historical claim changes.
+
+Fresh local verification of this combination:
+
+- Node `22.23.2`, npm `10.9.8`: clean `npm ci`, typecheck, all **525 tests across 25 files**, production build (**40 modules**) and `git diff --check` pass. Installation and all verification stages leave the lockfile and all 167 tracked files unchanged; the later changes to this verification prose and STATUS are documentation-only.
+- Chromium `148.0.7778.96`, newly built production output: **86/86** English/Chinese Space-ownership cases pass. **72 use actual keyboard/mouse input; 14 descendant/IME probes are explicitly synthetic.** Native controls, editable/ARIA/focusable owners, open-shadow paths, cancellation/modifiers, false-marker casing and route isolation retain the tested behavior.
+- **4/4 Carry/Controlled-Key workflows** (English/Chinese × 1440px/390px) pass, each with **31 inspected states and 25 native-Space actions**. Keydown leaves state unchanged; keyup yields exactly one trusted native click. The checks include `099 → ERROR_LOCKED → 106/CORRECTED_LOCKED → 106/IDLE → 126`, rejected operations, read-only replay, independent resets, route/language/history trips, focus fallback and the same connected polite status node. Background repeat still advances once per trusted keydown.
+- **4/4 repeated-crank integration workflows** at the same languages/widths pass, each with **23 repeated-course observations**. Fixed `314` settings yield seven units turns, a shift preserving `2198` and seven turns, then two tens turns to `8478`; nine completed turns and ten ordered events remain distinct. Synthetic out-of-guide click probes remain labeled as such. Direct multiplication independently reaches `8478`, and resetting repeated multiplication does not clear it.
+- The repeated workflows also preserve a Controlled-Key error lock across multiplication visits, commit the correction exactly once to `106` with two carries, and retain the live state after replay. A final three-way round trip uses native Space on Carry's complete-addition button: unchanged state/focused button on keydown, then exactly one trusted click and `0100` at event nine on keyup. Returning retains repeated `628`, direct `8478`, and Controlled-Key `106/IDLE` with counts `1 / 4`.
+- Existing repeated-course focus fallback and the same connected live-status node survive the checked rerenders; no node removals, page errors, non-local browser requests or horizontal document overflow occur in the completed four-case workflows. These checks observe browser DOM/keyboard behavior, not screen-reader speech or real operating-system IME behavior. Carry post-render focus restoration is not added by this change.
+- All three completed browser suites bind the same production assets: JavaScript `index-BDpSDEbK.js`, SHA-256 `d4cac6a2af6e82c73316e1025bb2ae6bdfa4f8bbf49f66946bdc2162047f7c87`; CSS `index-CF-xnIqw.css`, SHA-256 `4b563797a871cee67a29ba029d897bbb08e2809f888f818f31e3000f2ca2c6a5`.
+
+The first repeated-workflow run stopped at an overescaped numeric regex in the newly added external Carry-state probe, before that probe's behavior assertions. Its failed receipt is retained separately. Correcting only the external harness and rerunning that suite produced the four passing results above; no product code or production asset was changed to obtain the pass.
+
+The historical checkpoints below retain all 51 original sections with their original scope, including which then-unmerged branches they did not contain. The new results certify the local combination only, not remote CI, maintainer merge or Pages deployment.
+
+## 2026-09-08 — main d14 integration with Visible Carry Space ownership
+
+The exact published Space-ownership head `8b29c9df63ade8003b4c0ed813d68a0d2635cd21` was locally integrated with main `d14adc4469ad6fc7e0ec29a0b54e7cd89b1d6a67`, which contains the accepted action-bound interlock replay and Controlled-Key workbench. An ordinary main-into-PR merge required only two `STATUS.md` conflict blocks and one verification-heading conflict block to be reconciled. The automatic source merge is unchanged; repeated-crank PR #22 is not a dependency or part of this integration.
+
+- Node `22.23.2`, matching the CI major: fresh `npm ci`, `npm run typecheck`, all **504 tests across 24 files**, and `npm run build` — pass; production build transforms 39 modules.
+- `git diff --check` — pass. All 163 non-documentation source blobs equal the diagnosed automatic merge. Removing only the Space-helper import and restoring the old shortcut condition reconstructs every byte of d14's main module. All 48 historical verification sections and the entire older d14 verification tail are retained without rewriting their original scope or results.
+- Actual Chromium `148.0.7778.96`, locally built production assets: the expanded **86/86 English/Chinese ownership cases** pass, including native carry-complete/reset/language actions, interactive/editable and open-shadow ownership, cancellation/modifiers, mixed-case false editing markers and route isolation. **72 cases use actual keyboard/mouse input; 14 descendant/IME probes are deliberately synthetic.**
+- Four additional actual-input coexistence workflows — English/Chinese at 1440px and 390px — pass with **31 inspected states and 25 native-Space button actions each**. Each native action separately verifies unchanged state on keydown, then exactly one trusted click after keyup. Background repeated Space still advances once for each of two trusted keydowns.
+- Controlled-Key recovery: `099 → ERROR_LOCKED → 106/CORRECTED_LOCKED → 106/IDLE`, both recorded carry transfers, rejected other-column/early-release/repeated-correction attempts, active-key identity after selection changes, and continued tens entry to `126` all pass. Six-step read-only replay matches its recorded phase/count boundaries, return-to-current retains the live state, and reset from replay discards only that experiment.
+- Route, language and browser-history trips preserve the error lock, corrected-but-locked value, carry progress and independent resets. Tab/Shift+Tab and native Space/Enter remain operable; disabled-operation focus falls back to the expected enabled control with a visible outline.
+- The same connected polite status node survives all four workflows: 24 observed updates and zero removals per workflow, with text matching visible feedback on the controls route. There is no horizontal document overflow at 390px, no page error and no non-local browser request.
+- Both browser suites inspected the same production asset hashes. The JavaScript asset SHA-256 is `4900730b4e02834ea680665b4d1cfb636166739d0dded492917d0d7febf3bf9a`; documentation-only verification updates do not alter those tested assets.
+
+These are fresh local checks for this exact integration, not the earlier standalone or all-PR combination, new remote CI, deployment, real operating-system IME or screen-reader speech certification. No source changes beyond the normal automatic merge, dependency/workflow changes, evidence-boundary changes, or security/configuration overrides were introduced.
+
+## 2026-09-08 — case-insensitive false editing boundary
+
+Independent review of candidate `0d64bd49bd360b38b36c1e09182efdf801934acf` found that the CSS owner selector treated `contenteditable="FaLsE"` as an editor even though the browser correctly reports `contentEditable === 'false'` and `isContentEditable === false`. With that valid marker on the body, trusted Space incorrectly left carry at event 0; the equivalent lowercase marker allowed the background shortcut to advance to 1.
+
+The selector now excludes `[contenteditable="false" i]`, matching the ASCII-case-insensitive HTML keyword. A real enclosing editor still owns Space from its noneditable child. This is a normal follow-up commit, not a rewrite of the reviewed candidate; no invalid-token policy, focus behavior, arithmetic, event sequence, dependency or workflow is changed.
+
+- The expanded 86-case production-browser regression was first run on clean `0d64bd49…`: 4 actual failures (mixed/uppercase false in both languages), 82 positive controls, no page errors or external requests.
+- After the selector change, the same 86 cases pass in Chromium `148.0.7778.96`, English/Chinese. They include all original 78 cases, six trusted body-Space false-spelling checks and two synthetic mixed-false-child/actual-editor-ancestor checks. In total, 72 cases use actual keyboard/mouse input and 14 descendant/IME probes are explicitly synthetic.
+- Node `24.11.1`: typecheck, all 482 tests across 23 files, production build and diff check — pass. The existing 18 unit tests continue to cover event gating/path behavior; CSS enumeration/selector semantics are checked in the real DOM, not claimed from element doubles.
+
+All earlier verification sections and receipts remain intact. These are local author checks, not remote CI, deployment or screen-reader certification.
+
+## 2026-09-08 — Visible Carry Space-key ownership
+
+The exact main baseline `ae41f5b0f25b5dd613f363bc85839676752fbd4a` consumed Space even when a native button owned the key. Focusing “Show the whole addition” and pressing/releasing Space produced `0099`, event `1 / 9`, instead of `0100`, `9 / 9`; reset and language switching were also replaced by a single carry step. This was an operator-action routing defect, not incorrect arithmetic in the carry core.
+
+The page now claims only an unmodified, uncanceled, non-composing Space whose composed path has no interactive or editable owner. Native controls, ARIA widgets, focusable elements and their descendants keep their key; the original background shortcut still advances one event per keydown. Using the composed path also protects a native control inside an open shadow root. Existing click handlers, carry arithmetic/events, render structure, other-route handlers and historical/P-M boundaries are unchanged; this does not add a separate focus-restoration redesign.
+
+- Node.js `24.11.1`
+- `npm test -- tests/keyboard.test.ts` — pass, 18 behavioral unit tests for event gating and composed-path ownership; element-boundary doubles do not claim browser DOM/native-action coverage
+- `npm run typecheck` — pass
+- `npm test` — pass, 482 tests across 23 files
+- `npm run build` — pass
+- `git diff --check` — pass
+- Actual Chromium `148.0.7778.96`, English/Chinese — 78/78 targeted cases pass, including the original 26 Space/Enter/mouse/body comparisons, input/textarea/checkbox/select/summary/editable contexts, custom/focusable controls, shadow-path ownership, canceled/modified events and another-route carry-state isolation. Native Space produces exactly one trusted button click and no competing global step. Twelve descendant/IME cases deliberately dispatch synthetic events and are not called trusted keyboard input.
+- The same 78-case browser regression was run first on the unchanged baseline: 58 actual behavior failures and 20 positive controls. The failures record wrong state, swallowed native activation/editing, or improper shortcut cancellation, not an absent new helper or failed import. Every case reloads and checks its initial state. No page errors or non-local requests occurred before or after the fix.
+
+No workflow, dependency, carry core or deployment configuration changed. These are local candidate checks, not remote CI, merge, deployment or screen-reader speech certification. The unmerged interlock, Controlled-Key and repeated-crank PRs are not included in this standalone candidate.
+
 ## 2026-09-08 — repeated-crank lesson refreshed onto current main
 
 Merged actual main `d14adc4469ad6fc7e0ec29a0b54e7cd89b1d6a67` into the repeated-crank candidate `b4cfceea6576689d6fc3a8af170f719b13beb831` in an isolated clone. Three conflicts were reproduced: this record, `STATUS.md`, and the import block in `src/main.ts`. Resolution keeps the repeated-crank imports alongside main's Controlled-Key workbench imports; neither mechanism is replaced. Both earlier verification sections remain separately recorded below. Main's setting–crank interlock hardening is also retained.
