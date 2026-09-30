@@ -216,6 +216,10 @@ machines/<name>/
 
 跨机器查看“数字和控制在哪里、由什么动作推进”：[`docs/REPRESENTATION_AND_PROTOCOL.md`](docs/REPRESENTATION_AND_PROTOCOL.md)。
 
+### Computation Before Bits / 比特之前的计算
+
+[`research/computation-before-bits.md`](research/computation-before-bits.md) 把机械计算、连续模拟、雷达测量/伺服、磁芯 RAM 与 Apollo core-rope 放进同一条架构谱系里：**数学关系不一定先变成数字再交给 CPU，材料、几何、频率、相位、轴角、磁化状态和布线拓扑本身都可以承担表示与计算。** 这条研究线重点比较 representation / transformation / control / readout，不把教学类比冒充历史机器的精确几何。
+
 ### Key-Driven Computation
 
 新研究线：Comptometer 说明“输入”和“执行”不一定是两步。按键本身就可以是计算循环。详见 [`research/key-driven-computation.md`](research/key-driven-computation.md)。
