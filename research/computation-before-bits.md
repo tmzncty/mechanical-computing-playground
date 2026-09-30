@@ -315,6 +315,7 @@ Apollo 的固定程序、常量大量放在 fixed memory，可变状态才占用
 | 模拟机电 | 电压、频率、相位、轴角 | 运放、滤波、混频、伺服 | 接线、元件参数、机构连接 |
 | 早期数字 | 磁芯状态、寄存器 | 逻辑门、微逻辑 | core rope、固定逻辑、指令 |
 | 现代数字 | bits / words / tensors | CPU/GPU/ASIC | 软件、固件、模型参数 |
+| 可重构数字逻辑 | flip-flop / BRAM / distributed state | LUT、DSP、状态机、可配置互连 | HDL + synthesis/place-and-route + bitstream |
 
 关键不是做“古代 vs 现代”的价值排名，而是问：
 
@@ -322,7 +323,231 @@ Apollo 的固定程序、常量大量放在 fixed memory，可变状态才占用
 
 ---
 
+
+## 7. From Wiring the Algorithm to Compiling the Wiring
+
+FPGA 给这条谱系补上了一个很有意思的现代回环。
+
+如果把通用 CPU 的典型工作方式高度简化，可以写成：
+
+```text
+一组通用执行资源
+→ 取指 / 译码 / 调度
+→ 在时间上反复执行不同操作
+```
+
+FPGA 则允许设计者把一部分计算直接展开为空间中的数字逻辑：
+
+```text
+HDL / hardware description
+→ elaboration / synthesis
+→ logic network
+→ place & route
+→ configured FPGA
+```
+
+于是多个计数器、状态机、滤波器、串行接口或算术单元可以在芯片上作为彼此独立的硬件结构同时存在。
+
+这里的区别不能夸张成“CPU 没有并行、FPGA 没有时序”。现代 CPU 本身包含大量并行执行单元，FPGA 设计也常有时钟、流水线和状态机。更准确的 R 级解释是：
+
+> **CPU 倾向于让通用硬件在时间上复用；FPGA 允许把特定数据通路和控制逻辑在空间上展开。**
+
+这与早期机械 / 模拟计算形成一种跨时代的结构类比：计算关系再次明显地“长在结构里”，只是结构从齿轮、凸轮、接线和运放网络，变成了 LUT、flip-flop、DSP block、BRAM 与可配置互连。
+
+### 7.1 Zynq：把软件世界和可编程逻辑放在一颗芯片里
+
+AMD/Xilinx Zynq-7000 把两类计算资源集成在同一 SoC：
+
+- **PS (Processing System)**：包含 Arm Cortex-A9 处理器系统，可运行常规软件和操作系统；
+- **PL (Programmable Logic)**：7-series FPGA 可编程逻辑。
+
+UG585 列出的 PS–PL 接口包括：
+
+- 2 个 PS→PL General Purpose AXI master；
+- 2 个 PL→PS General Purpose AXI slave；
+- 4 个面向 DDR/OCM 高带宽访问的 AXI_HP 接口；
+- 1 个 Accelerator Coherency Port (AXI_ACP)。
+
+因此，Zynq 不是简单地“CPU 旁边挂一块 FPGA”。PS 与 PL 被设计成可以共享数据、内存访问和中断/控制路径的一个系统。
+
+对本仓库最重要的不是某个具体带宽数字，而是这种分工：
+
+```text
+PS / software
+  负责策略、配置、文件、网络、复杂控制流
+        ↕ AXI / memory / interrupts
+PL / hardware
+  负责确定时序的数据通路、状态机、I/O 与并行逻辑
+```
+
+这让“软件定义行为”和“结构实现行为”不再是二选一，而可以同时存在。
+
+### 7.2 Amaranth：Python 不是在 FPGA 上“运行”
+
+Amaranth 官方文档把它定义为一种用 Python 构造同步数字逻辑的硬件描述语言 / 工具链。普通 Python 代码在 elaboration 阶段构造 RTL 级数字电路 netlist；该设计可以被模拟、综合，或转换成 Verilog 后进入常规 FPGA 工具链。
+
+因此：
+
+```text
+Python program
+≠
+FPGA runtime program
+```
+
+更接近：
+
+```text
+Python executes during design/elaboration
+          ↓
+constructs a hardware description
+          ↓
+netlist / Verilog / synthesis
+          ↓
+FPGA configuration
+```
+
+这和在 CPU 上运行 Python、C 或 Rust 是完全不同的关系。
+
+从本仓库的比较框架看，可以把 HDL 看作一种“制造结构的描述语言”：它描述的不是下一条要执行的业务指令，而是寄存器、组合逻辑、状态转移和连接关系应该如何形成。
+
+### 7.3 Excessive Motion controller：一个当代的软硬件分工案例
+
+Excessive Motion 的 controller repository 把工程明确拆成：
+
+- `controller-firmware`：FPGA HDL generation；
+- `controller-software`：运行在控制器上的核心程序；
+- `em-os`：生成控制器基础 Linux 系统的 PetaLinux 工程。
+
+用户提供的 Excessive Overkill 视频和 fork 正是在解释这一类结构。
+
+这个案例的价值不在于证明“FPGA 比 MCU/CPU 更好”，而在于它把两个不同层级同时摆在桌面上：
+
+```text
+Linux / processor:
+    policy, orchestration, configuration
+
+FPGA fabric:
+    counters, interfaces, timing, state machines,
+    application-specific datapaths
+```
+
+对于机器控制，这意味着一些对时序敏感的工作不必全部表现为：
+
+```text
+interrupt
+→ software handler
+→ instruction sequence
+→ next interrupt
+```
+
+而可以表现为长期存在的硬件状态机和数据通路。
+
+### 7.4 “编译布线”只是一个解释性简称
+
+“From Wiring the Algorithm to Compiling the Wiring” 很适合做本节标题，但必须说明它是 **R/P 级比喻**。
+
+现代 SRAM FPGA 并不是每次综合后真的把金属导线重新制造。bitstream 配置的是芯片里已经制造好的可编程资源，例如：
+
+- LUT 的逻辑函数；
+- flip-flop 和时钟相关配置；
+- 可编程 routing / switch matrix；
+- BRAM、DSP、I/O 等专用资源的工作方式。
+
+所以更严谨的链条是：
+
+```text
+algorithm / control relation
+        ↓
+HDL structure
+        ↓
+synthesis + place & route
+        ↓
+configuration bits
+        ↓
+pre-fabricated programmable resources
+become one particular digital machine
+```
+
+也就是说，“编译布线”不是字面上的重新布线，而是：
+
+> **编译出一组配置，使预先制造好的可编程结构表现成这一台特定的数字机器。**
+
+### 7.5 这条线为什么能接回机械计算
+
+现在可以把整条谱系重新写成：
+
+```text
+mechanical:
+    geometry / gear topology carries the relation
+
+analog:
+    component values / wiring / continuous physics carry the relation
+
+fixed digital logic:
+    gates and wiring carry the relation
+
+stored-program CPU:
+    general hardware repeatedly interprets instructions
+
+FPGA:
+    a stored description is compiled into a configured logic topology
+```
+
+因此 FPGA 并不是“回到机械时代”，也不是取消 stored-program computing。
+
+真正值得比较的是一个更抽象的问题：
+
+> **算法中有多少东西留在时间序列里，又有多少被展开进空间结构里？**
+
+这也是为什么 FPGA retro-computing 很值得以后单独扩展：它并不只是让现代 CPU 更快地模拟旧机器，而可以重新实现旧 CPU、视频时序、音频逻辑和外设状态机，使“模拟一台机器”与“重新构造它的数字结构”之间出现新的边界问题。
+
+---
+
 ## What the sources directly establish
+
+
+### AMD — Zynq-7000 PS/PL architecture
+
+直接支持：
+
+- Zynq-7000 存在 Processing System 与 Programmable Logic 两个主要域；
+- PS–PL 之间提供 GP、HP、ACP 等 AXI 接口；
+- 四个 AXI_HP 接口为 PL master 提供通往 DDR/OCM 的高带宽数据路径；
+- ACP 为 PL master 提供与处理器缓存体系相关的低延迟 / 可选一致性访问路径。
+
+不直接支持：
+
+- “CPU 是时间、FPGA 是空间”作为严格分类；
+- “编译布线”作为芯片制造商术语；
+- FPGA 在任何任务上都比 CPU/MCU 更适合。
+
+### Amaranth — hardware description in Python
+
+直接支持：
+
+- Amaranth 是用 Python 构造同步数字逻辑的开源工具链；
+- Amaranth 代码构造 RTL 级数字电路 netlist；
+- 设计可被模拟、综合，或转换为 Verilog。
+
+不直接支持：
+
+- Python 代码本身作为 FPGA runtime workload 运行；
+- 本仓库把 HDL 称为“制造结构的描述语言”的解释性类比。
+
+### Excessive Motion — universal machine controller repository
+
+直接支持：
+
+- repository 自述为 open-source universal machine controller；
+- repository 将 `controller-firmware` 描述为 FPGA HDL generation；
+- 将 `controller-software` 描述为控制器核心程序；
+- 将 `em-os` 描述为用于生成基础 Linux OS 的 PetaLinux project。
+
+不直接支持：
+
+- 所有低层实时控制均由 FPGA 完成；
+- FPGA 相对 STM32/其他 MCU 的普遍性能优越性；
+- 本节任何未由代码或文档逐项核对的具体寄存器映射。
 
 ### Smithsonian — Mechanical Integrators and Differential Analyzers
 
@@ -460,6 +685,8 @@ electromagnetic measurement/control
 fixed / mutable digital memory
       ↓
 software-defined computation
+      ↓
+reconfigurable / spatial digital computation
 ```
 
 与现有页面的关系：
@@ -478,10 +705,37 @@ software-defined computation
 - 若要把 V-2、火控计算机、舰载雷达或具体惯导加入展项，必须分别建立 source map；不能只凭“当时没有现代计算机”做泛化。
 - core-rope 若做机制动画，需要进一步读取 MIT/NASA 原始逻辑图和制造资料，确认地址选择与 sense-line 组织后再画。
 - differential analyzer 若从理想 integrator 进入真实几何，继续遵循现有 `research/differential-analyzer.md` 的来源边界。
+- FPGA retro-computing（包括 MiSTer）若进入正文，需要进一步建立具体 core 的 source map，区分 cycle/timing-faithful reconstruction、functional compatibility 与纯软件 emulation，不能把“FPGA 实现”自动等同于“原机精确复原”。
 
 ---
 
 ## Sources
+
+
+### H/E1 — Zynq / FPGA / Amaranth
+
+- AMD, *Zynq-7000 SoC Technical Reference Manual (UG585) — PS–PL AXI Interfaces*:  
+  <https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM/PS-PL-AXI-Interfaces>
+
+- AMD, *Zynq-7000 SoC Technical Reference Manual (UG585) — AXI_HP Interfaces*:  
+  <https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM/AXI_HP-Interfaces>
+
+- AMD, *Zynq-7000 SoC Technical Reference Manual (UG585) — AXI_ACP Interface*:  
+  <https://docs.amd.com/r/en-US/ug585-zynq-7000-SoC-TRM/AXI_ACP-Interface>
+
+- Amaranth HDL, *Introduction*:  
+  <https://amaranth-lang.org/docs/amaranth/v0.5.0/intro.html>
+
+- Excessive Motion, *controller-software* repository:  
+  <https://github.com/ExcessiveMotion/controller-software>
+
+- Excessive Overkill, *controller-software* fork referenced by the video:  
+  <https://github.com/ExcessiveOverkill/controller-software>
+
+### H/E1 — Contemporary demonstration
+
+- Excessive Overkill, FPGA controller video referenced 2026-10-01:  
+  <https://www.youtube.com/watch?v=d3nuepnbmC4>
 
 ### H/E1–E2 — Apollo Guidance Computer
 
