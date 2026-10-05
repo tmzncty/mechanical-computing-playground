@@ -272,6 +272,159 @@ RAM 磁化状态  → 可变状态
 
 这种并置是 R/P 级跨架构解释，不是说历史设计者把它们视为同一种东西。
 
+
+### 4.3 FeRAM / FRAM：让铁电极化成为可保持的 bit
+
+磁芯 RAM 之后还有一个很适合放进这条谱系的现代案例：**ferroelectric RAM（FeRAM / F-RAM / FRAM）**。
+
+它与磁芯 RAM 的共同点不是材料相同，而是更抽象的一件事：
+
+> **利用材料本身可以长期停留的两个物理状态表示二进制信息。**
+
+传统 1T1C FeRAM 单元由一个访问晶体管和一个铁电电容组成。二进制信息保存在铁电材料的两种稳定极化方向中；写入脉冲使极化切换，撤掉外部电场后仍保留剩余极化，因此掉电后数据不会像普通 DRAM 那样立即消失。
+
+从本仓库的表示框架看：
+
+```text
+magnetic-core RAM:
+    magnetic orientation
+        ↓
+      bit state
+
+1T1C FeRAM:
+    remanent ferroelectric polarization
+        ↓
+      bit state
+```
+
+“中心离子落入两个势阱”可以作为某些铁电材料的教学图像，但不应被写成所有商用 FRAM 材料与器件的统一微观模型。更稳妥的表述是：**器件利用可翻转并可保持的铁电极化态编码信息。**
+
+#### 4.3.1 读取：知道状态的同时，可能把状态改掉
+
+传统 1T1C FeRAM 的读取很像经典磁芯 RAM，也具有破坏性。
+
+读操作给铁电电容施加一个读取脉冲：
+
+- 若原有极化与读取方向一致，主要出现非翻转响应；
+- 若原有极化方向相反，就会发生极化翻转，并产生更大的 switching charge；
+- sense amplifier 通过两种响应的差异判断原来的 0 / 1；
+- 因为其中一种状态在检测过程中已经被翻转，随后必须执行 restore / write-back。
+
+因此：
+
+```text
+stored polarization
+      ↓
+read pulse
+      ↓
+switching charge or non-switching response
+      ↓
+sense amplifier
+      ↓
+logical 0 / 1
+      ↓
+restore original state if needed
+```
+
+这与磁芯 RAM 的历史连续性很值得强调：
+
+> **“非易失”并不自动意味着“无扰动读取”。**
+
+磁芯 RAM 和经典 1T1C FeRAM 都说明，存储可以由材料状态承担，而读取本身仍可能是一个会改变被测状态的物理过程。
+
+#### 4.3.2 “151 年 / 100 万亿次”必须绑定到具体器件
+
+Infineon 当前的 FM25V02A 是一个很好的工程例子。其官方资料给出的规格包括：
+
+- 256 Kbit，逻辑组织为 32K × 8，也就是 32 KiB；
+- SPI 最高 40 MHz；
+- endurance：`10^14` 次 read/write cycles；
+- data retention：65 °C 下至少 151 年；
+- 同一数据表同时给出 85 °C 下至少 10 年；
+- 写入没有 Flash / EEPROM 那类 erase/program 等待，数据可在总线传输完成后立即保持。
+
+所以“永久存储”“无限擦写”只能当作工程宣传式简称，不能作为严格结论。
+
+更准确的说法是：
+
+> **某些商用 F-RAM 在规定温度和工作条件下具有极高的写入耐久与很长的数据保持时间。**
+
+同时，`10^14` 次也不是所有 FeRAM 器件、所有材料体系和所有温度条件下的统一数字。
+
+#### 4.3.3 为什么它没有替代 NAND Flash
+
+FRAM 的优势非常适合：
+
+- 高频计数器；
+- 配置和校准数据；
+- 设备状态；
+- 掉电前最后状态；
+- 日志与事件记录；
+- 高频 checkpoint；
+- 工业控制中需要频繁持久化的小块数据。
+
+但高耐久并不等于高密度。FM25V02A 总容量只有 256 Kbit / 32 KiB，而现代 NAND Flash、SD 卡和 SSD 的容量已经进入 GB–TB 级。
+
+因此两类器件优化的是不同问题：
+
+```text
+FRAM:
+    frequent small persistent updates
+    fast writes
+    very high endurance
+    modest density
+
+NAND Flash:
+    very high density
+    large bulk storage
+    erase/program management
+    lower per-cell endurance
+```
+
+这也是一个很好的“架构约束”案例：**最适合保存一个 bit 的物理机制，不一定最适合把数十亿、数万亿个 bit 压进最低成本的面积里。**
+
+#### 4.3.4 与本仓库主题的连接
+
+把磁芯、core-rope 和 FRAM 放在一起，可以看到三种完全不同的“信息在哪里”：
+
+| 技术 | 信息主要存在于哪里 | 可改写 | 典型读取特征 |
+|---|---|---:|---|
+| magnetic-core RAM | 磁芯磁化方向 | 是 | 经典实现通常破坏性读取后恢复 |
+| core-rope memory | 导线与磁芯的制造拓扑 | 否（现场） | 固定信息，非破坏读取 |
+| 1T1C FeRAM | 铁电电容剩余极化方向 | 是 | 传统实现破坏性读取后恢复 |
+
+所以从机械计算一路走到现代非易失存储，仍然可以用同一个问题追问：
+
+> **一个 bit 到底是什么？**
+
+在逻辑层，它只是 0 或 1；在物理层，它可以是：
+
+- 一个磁芯朝哪个方向磁化；
+- 一根导线是否穿过某组磁芯；
+- 一个铁电电容保持哪一个极化方向。
+
+这使“bit”不再像脱离材料的抽象符号，而是变成一个工程问题：
+
+> **找出两个足够稳定、可区分、可切换、可读出的物理状态，然后建立可靠的寻址、感测和恢复机制。**
+
+#### 4.3.5 Contemporary open-source demonstration
+
+用户提供的 OSHWHub 开源项目：
+
+- <https://oshwhub.com/fangs233/project_blcrwqhk>
+
+把 FRAM 包装成一个可实际使用的小型存储项目，适合作为本仓库未来交互展项或硬件复现的 contemporary demonstration。
+
+但它在证据体系中的位置应当明确：
+
+- 可以作为 **E1 contemporary artifact** 证明今天的爱好者可以直接使用商用 FRAM 做设备；
+- 不应单独用来证明铁电物理机制、耐久或保持时间；
+- 器件规格应回到芯片原厂数据表；
+- “永久”“无限”等项目宣传措辞不能不加限定地进入历史/工程结论。
+
+此外，不能仅凭“FRAM”这一类别推断任意器件都具有航天级抗辐射能力；radiation-hardness 必须绑定到具体器件、工艺与辐照测试。
+
+
 ---
 
 ## 5. 为什么几 KB 也能上天
@@ -736,6 +889,35 @@ reconfigurable / spatial digital computation
 
 - Excessive Overkill, FPGA controller video referenced 2026-10-01:  
   <https://www.youtube.com/watch?v=d3nuepnbmC4>
+
+### H/E1–E2 — Ferroelectric RAM / F-RAM
+
+- Infineon, *FM25V02A — 256 Kbit (32K × 8) Serial (SPI) F-RAM*:  
+  <https://www.infineon.com/part/FM25V02A-G>
+
+- Infineon, *FM25V02A datasheet — Data Retention and Endurance*:  
+  <https://www.infineon.com/assets/row/public/documents/10/49/infineon-fm25v02a-256-kbit-32k-8-serial-spi-f-ram-datasheet-en.pdf>
+
+- Park et al., *Revival of Ferroelectric Memories Based on Emerging Fluorite-Structured Ferroelectrics*, Advanced Materials (2023):  
+  <https://onlinelibrary.wiley.com/doi/10.1002/adma.202204904>
+
+- OSHWHub, user-supplied contemporary FRAM storage project:  
+  <https://oshwhub.com/fangs233/project_blcrwqhk>
+
+直接支持：
+
+- 1T1C FeRAM 以铁电电容两种极化状态保存二进制信息；
+- 传统 1T1C FeRAM 读取是破坏性的，需要 restore / rewrite；
+- FM25V02A 为 256-Kbit SPI F-RAM，官方给出 `10^14` 次读写耐久；
+- FM25V02A 数据表给出 65 °C 下 151 年、85 °C 下 10 年的数据保持规格；
+- “151 年”“100 万亿次”属于具体器件及其规定条件，不是整个 FRAM 类别的无条件性质。
+
+不直接支持：
+
+- “永久存储”“无限擦写”的字面含义；
+- 所有 FRAM 都使用完全相同的微观晶格模型；
+- 所有 FRAM 都具备 radiation-hard / space-grade 能力；
+- FRAM 在容量、成本或密度上普遍优于 NAND Flash。
 
 ### H/E1–E2 — Apollo Guidance Computer
 
